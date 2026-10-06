@@ -4269,11 +4269,16 @@ type ArtifactEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -4288,14 +4293,17 @@ type ArtifactEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ArtifactEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ArtifactEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ArtifactEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -4334,6 +4342,9 @@ func (v *ArtifactEventDefaultFieldsStream) GetPlaybackId() string { return v.Pla
 
 // GetRecord returns ArtifactEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ArtifactEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ArtifactEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ArtifactEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ArtifactEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ArtifactEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -4611,6 +4622,8 @@ type ArtifactEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -4641,6 +4654,11 @@ func (v *ArtifactEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *s
 
 // GetName returns ArtifactEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ArtifactEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ArtifactEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ArtifactEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ArtifactEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ArtifactEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -4835,11 +4853,16 @@ type ArtifactEventInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -4854,14 +4877,17 @@ type ArtifactEventInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ArtifactEventInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ArtifactEventInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -4900,6 +4926,9 @@ func (v *ArtifactEventInNodeDefaultFieldsStream) GetPlaybackId() string { return
 
 // GetRecord returns ArtifactEventInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ArtifactEventInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ArtifactEventInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ArtifactEventInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ArtifactEventInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ArtifactEventInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -5203,6 +5232,8 @@ type ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -5233,6 +5264,11 @@ func (v *ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatfor
 
 // GetName returns ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ArtifactEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -5443,11 +5479,16 @@ type ArtifactStateDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -5462,14 +5503,17 @@ type ArtifactStateDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ArtifactStateDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ArtifactStateDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ArtifactStateDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -5508,6 +5552,9 @@ func (v *ArtifactStateDefaultFieldsStream) GetPlaybackId() string { return v.Pla
 
 // GetRecord returns ArtifactStateDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ArtifactStateDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ArtifactStateDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ArtifactStateDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ArtifactStateDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ArtifactStateDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -5785,6 +5832,8 @@ type ArtifactStateDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -5815,6 +5864,11 @@ func (v *ArtifactStateDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *s
 
 // GetName returns ArtifactStateDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ArtifactStateDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ArtifactStateDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ArtifactStateDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ArtifactStateDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ArtifactStateDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -10106,11 +10160,16 @@ type ClientMetrics5mDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -10125,14 +10184,17 @@ type ClientMetrics5mDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ClientMetrics5mDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ClientMetrics5mDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -10171,6 +10233,9 @@ func (v *ClientMetrics5mDefaultFieldsStream) GetPlaybackId() string { return v.P
 
 // GetRecord returns ClientMetrics5mDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ClientMetrics5mDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ClientMetrics5mDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ClientMetrics5mDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ClientMetrics5mDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ClientMetrics5mDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -10456,6 +10521,8 @@ type ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -10486,6 +10553,11 @@ func (v *ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() 
 
 // GetName returns ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ClientMetrics5mDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -11322,11 +11394,16 @@ type ClipInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -11341,14 +11418,17 @@ type ClipInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ClipInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ClipInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ClipInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -11387,6 +11467,9 @@ func (v *ClipInNodeDefaultFieldsStream) GetPlaybackId() string { return v.Playba
 
 // GetRecord returns ClipInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ClipInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ClipInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ClipInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ClipInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ClipInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -11658,6 +11741,8 @@ type ClipInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -11684,6 +11769,11 @@ func (v *ClipInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *stri
 
 // GetName returns ClipInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ClipInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ClipInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ClipInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ClipInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ClipInNodeDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -13275,11 +13365,16 @@ type ConnectionEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -13294,14 +13389,17 @@ type ConnectionEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ConnectionEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ConnectionEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ConnectionEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -13340,6 +13438,9 @@ func (v *ConnectionEventDefaultFieldsStream) GetPlaybackId() string { return v.P
 
 // GetRecord returns ConnectionEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ConnectionEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ConnectionEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ConnectionEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ConnectionEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ConnectionEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -13625,6 +13726,8 @@ type ConnectionEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -13655,6 +13758,11 @@ func (v *ConnectionEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() 
 
 // GetName returns ConnectionEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ConnectionEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ConnectionEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ConnectionEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ConnectionEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ConnectionEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -13915,11 +14023,16 @@ type ConnectionEventInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -13934,14 +14047,17 @@ type ConnectionEventInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ConnectionEventInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ConnectionEventInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -13980,6 +14096,9 @@ func (v *ConnectionEventInNodeDefaultFieldsStream) GetPlaybackId() string { retu
 
 // GetRecord returns ConnectionEventInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ConnectionEventInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ConnectionEventInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ConnectionEventInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ConnectionEventInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ConnectionEventInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -14291,6 +14410,8 @@ type ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -14322,6 +14443,11 @@ func (v *ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatf
 // GetName returns ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns ConnectionEventInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -17210,9 +17336,9 @@ func (v *CreateDeveloperTokenCreateDeveloperTokenValidationError) __premarshalJS
 type CreateDeveloperTokenInput struct {
 	// Human-readable name for the token.
 	Name string `json:"name"`
-	// Comma-separated permission scopes (read:streams, write:streams, etc.).
+	// Comma-separated permission scopes in resource:action form (streams:read, streams:write, analytics:read, etc.).
 	Permissions *string `json:"permissions"`
-	// Days until expiration (null = non-expiring).
+	// Days until expiration, 1-3650 (null = non-expiring).
 	ExpiresIn *int `json:"expiresIn"`
 }
 
@@ -20192,6 +20318,8 @@ type CreatePushTargetInput struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO for RTMP targets.
+	VideoChoice *string `json:"videoChoice"`
 	// Full target URI including stream key (e.g., rtmp://live.twitch.tv/app/live_xxxx).
 	TargetUri string `json:"targetUri"`
 }
@@ -20201,6 +20329,9 @@ func (v *CreatePushTargetInput) GetPlatform() *string { return v.Platform }
 
 // GetName returns CreatePushTargetInput.Name, and is useful for accessing the field via an interface.
 func (v *CreatePushTargetInput) GetName() string { return v.Name }
+
+// GetVideoChoice returns CreatePushTargetInput.VideoChoice, and is useful for accessing the field via an interface.
+func (v *CreatePushTargetInput) GetVideoChoice() *string { return v.VideoChoice }
 
 // GetTargetUri returns CreatePushTargetInput.TargetUri, and is useful for accessing the field via an interface.
 func (v *CreatePushTargetInput) GetTargetUri() string { return v.TargetUri }
@@ -20810,69 +20941,78 @@ func (v *CreateSigningKeyResponse) __premarshalJSON() (*__premarshalCreateSignin
 // A live stream configuration with real-time operational metrics.
 // Streams are the core entity for broadcasting and viewing live content.
 type CreateStreamCreateStream struct {
-	Typename     *string `json:"__typename"`
-	StreamFields `json:"-"`
+	Typename            *string `json:"__typename"`
+	StreamWithKeyFields `json:"-"`
 }
 
 // GetTypename returns CreateStreamCreateStream.Typename, and is useful for accessing the field via an interface.
 func (v *CreateStreamCreateStream) GetTypename() *string { return v.Typename }
 
+// GetStreamKey returns CreateStreamCreateStream.StreamKey, and is useful for accessing the field via an interface.
+func (v *CreateStreamCreateStream) GetStreamKey() *string { return v.StreamWithKeyFields.StreamKey }
+
 // GetId returns CreateStreamCreateStream.Id, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetId() string { return v.StreamFields.Id }
+func (v *CreateStreamCreateStream) GetId() string { return v.StreamWithKeyFields.StreamFields.Id }
 
 // GetStreamId returns CreateStreamCreateStream.StreamId, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetStreamId() string { return v.StreamFields.StreamId }
+func (v *CreateStreamCreateStream) GetStreamId() string {
+	return v.StreamWithKeyFields.StreamFields.StreamId
+}
 
 // GetName returns CreateStreamCreateStream.Name, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetName() string { return v.StreamFields.Name }
+func (v *CreateStreamCreateStream) GetName() string { return v.StreamWithKeyFields.StreamFields.Name }
 
 // GetDescription returns CreateStreamCreateStream.Description, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetDescription() *string { return v.StreamFields.Description }
-
-// GetStreamKey returns CreateStreamCreateStream.StreamKey, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetStreamKey() *string { return v.StreamFields.StreamKey }
+func (v *CreateStreamCreateStream) GetDescription() *string {
+	return v.StreamWithKeyFields.StreamFields.Description
+}
 
 // GetPlaybackId returns CreateStreamCreateStream.PlaybackId, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetPlaybackId() string { return v.StreamFields.PlaybackId }
+func (v *CreateStreamCreateStream) GetPlaybackId() string {
+	return v.StreamWithKeyFields.StreamFields.PlaybackId
+}
 
 // GetRecord returns CreateStreamCreateStream.Record, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetRecord() bool { return v.StreamFields.Record }
+func (v *CreateStreamCreateStream) GetRecord() bool { return v.StreamWithKeyFields.StreamFields.Record }
 
 // GetIngestMode returns CreateStreamCreateStream.IngestMode, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetIngestMode() IngestMode { return v.StreamFields.IngestMode }
+func (v *CreateStreamCreateStream) GetIngestMode() IngestMode {
+	return v.StreamWithKeyFields.StreamFields.IngestMode
+}
 
 // GetPullSource returns CreateStreamCreateStream.PullSource, and is useful for accessing the field via an interface.
 func (v *CreateStreamCreateStream) GetPullSource() *StreamFieldsPullSourcePullSourceView {
-	return v.StreamFields.PullSource
+	return v.StreamWithKeyFields.StreamFields.PullSource
 }
 
 // GetCreatedAt returns CreateStreamCreateStream.CreatedAt, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetCreatedAt() time.Time { return v.StreamFields.CreatedAt }
+func (v *CreateStreamCreateStream) GetCreatedAt() time.Time {
+	return v.StreamWithKeyFields.StreamFields.CreatedAt
+}
 
 // GetUpdatedAt returns CreateStreamCreateStream.UpdatedAt, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetUpdatedAt() time.Time { return v.StreamFields.UpdatedAt }
+func (v *CreateStreamCreateStream) GetUpdatedAt() time.Time {
+	return v.StreamWithKeyFields.StreamFields.UpdatedAt
+}
 
 // GetDvrChapterMode returns CreateStreamCreateStream.DvrChapterMode, and is useful for accessing the field via an interface.
 func (v *CreateStreamCreateStream) GetDvrChapterMode() *DVRChapterMode {
-	return v.StreamFields.DvrChapterMode
+	return v.StreamWithKeyFields.StreamFields.DvrChapterMode
 }
 
 // GetDvrChapterIntervalSeconds returns CreateStreamCreateStream.DvrChapterIntervalSeconds, and is useful for accessing the field via an interface.
 func (v *CreateStreamCreateStream) GetDvrChapterIntervalSeconds() *int {
-	return v.StreamFields.DvrChapterIntervalSeconds
+	return v.StreamWithKeyFields.StreamFields.DvrChapterIntervalSeconds
 }
 
 // GetMonitoring returns CreateStreamCreateStream.Monitoring, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetMonitoring() MonitoringToggle { return v.StreamFields.Monitoring }
+func (v *CreateStreamCreateStream) GetMonitoring() MonitoringToggle {
+	return v.StreamWithKeyFields.StreamFields.Monitoring
+}
 
 // GetPlaybackPolicy returns CreateStreamCreateStream.PlaybackPolicy, and is useful for accessing the field via an interface.
 func (v *CreateStreamCreateStream) GetPlaybackPolicy() *StreamFieldsPlaybackPolicy {
-	return v.StreamFields.PlaybackPolicy
-}
-
-// GetMetrics returns CreateStreamCreateStream.Metrics, and is useful for accessing the field via an interface.
-func (v *CreateStreamCreateStream) GetMetrics() *StreamFieldsMetricsStreamMetrics {
-	return v.StreamFields.Metrics
+	return v.StreamWithKeyFields.StreamFields.PlaybackPolicy
 }
 
 func (v *CreateStreamCreateStream) UnmarshalJSON(b []byte) error {
@@ -20893,7 +21033,7 @@ func (v *CreateStreamCreateStream) UnmarshalJSON(b []byte) error {
 	}
 
 	err = json.Unmarshal(
-		b, &v.StreamFields)
+		b, &v.StreamWithKeyFields)
 	if err != nil {
 		return err
 	}
@@ -20903,6 +21043,8 @@ func (v *CreateStreamCreateStream) UnmarshalJSON(b []byte) error {
 type __premarshalCreateStreamCreateStream struct {
 	Typename *string `json:"__typename"`
 
+	StreamKey *string `json:"streamKey"`
+
 	Id string `json:"id"`
 
 	StreamId string `json:"streamId"`
@@ -20910,8 +21052,6 @@ type __premarshalCreateStreamCreateStream struct {
 	Name string `json:"name"`
 
 	Description *string `json:"description"`
-
-	StreamKey *string `json:"streamKey"`
 
 	PlaybackId string `json:"playbackId"`
 
@@ -20932,8 +21072,6 @@ type __premarshalCreateStreamCreateStream struct {
 	Monitoring MonitoringToggle `json:"monitoring"`
 
 	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
-
-	Metrics *StreamFieldsMetricsStreamMetrics `json:"metrics"`
 }
 
 func (v *CreateStreamCreateStream) MarshalJSON() ([]byte, error) {
@@ -20948,22 +21086,21 @@ func (v *CreateStreamCreateStream) __premarshalJSON() (*__premarshalCreateStream
 	var retval __premarshalCreateStreamCreateStream
 
 	retval.Typename = v.Typename
-	retval.Id = v.StreamFields.Id
-	retval.StreamId = v.StreamFields.StreamId
-	retval.Name = v.StreamFields.Name
-	retval.Description = v.StreamFields.Description
-	retval.StreamKey = v.StreamFields.StreamKey
-	retval.PlaybackId = v.StreamFields.PlaybackId
-	retval.Record = v.StreamFields.Record
-	retval.IngestMode = v.StreamFields.IngestMode
-	retval.PullSource = v.StreamFields.PullSource
-	retval.CreatedAt = v.StreamFields.CreatedAt
-	retval.UpdatedAt = v.StreamFields.UpdatedAt
-	retval.DvrChapterMode = v.StreamFields.DvrChapterMode
-	retval.DvrChapterIntervalSeconds = v.StreamFields.DvrChapterIntervalSeconds
-	retval.Monitoring = v.StreamFields.Monitoring
-	retval.PlaybackPolicy = v.StreamFields.PlaybackPolicy
-	retval.Metrics = v.StreamFields.Metrics
+	retval.StreamKey = v.StreamWithKeyFields.StreamKey
+	retval.Id = v.StreamWithKeyFields.StreamFields.Id
+	retval.StreamId = v.StreamWithKeyFields.StreamFields.StreamId
+	retval.Name = v.StreamWithKeyFields.StreamFields.Name
+	retval.Description = v.StreamWithKeyFields.StreamFields.Description
+	retval.PlaybackId = v.StreamWithKeyFields.StreamFields.PlaybackId
+	retval.Record = v.StreamWithKeyFields.StreamFields.Record
+	retval.IngestMode = v.StreamWithKeyFields.StreamFields.IngestMode
+	retval.PullSource = v.StreamWithKeyFields.StreamFields.PullSource
+	retval.CreatedAt = v.StreamWithKeyFields.StreamFields.CreatedAt
+	retval.UpdatedAt = v.StreamWithKeyFields.StreamFields.UpdatedAt
+	retval.DvrChapterMode = v.StreamWithKeyFields.StreamFields.DvrChapterMode
+	retval.DvrChapterIntervalSeconds = v.StreamWithKeyFields.StreamFields.DvrChapterIntervalSeconds
+	retval.Monitoring = v.StreamWithKeyFields.StreamFields.Monitoring
+	retval.PlaybackPolicy = v.StreamWithKeyFields.StreamFields.PlaybackPolicy
 	return &retval, nil
 }
 
@@ -21226,6 +21363,8 @@ type CreateStreamInput struct {
 	Description *string `json:"description"`
 	// Enable DVR recording (default: false).
 	Record *bool `json:"record"`
+	// Live video renditions: INHERIT uses the tier policy; OFF keeps source video and audio conversion.
+	LiveVideoAbr *string `json:"liveVideoAbr"`
 	// Source ingest model. Defaults to PUSH.
 	IngestMode *IngestMode `json:"ingestMode"`
 	// Pull-source configuration. Required when ingestMode is PULL.
@@ -21242,6 +21381,9 @@ func (v *CreateStreamInput) GetDescription() *string { return v.Description }
 
 // GetRecord returns CreateStreamInput.Record, and is useful for accessing the field via an interface.
 func (v *CreateStreamInput) GetRecord() *bool { return v.Record }
+
+// GetLiveVideoAbr returns CreateStreamInput.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *CreateStreamInput) GetLiveVideoAbr() *string { return v.LiveVideoAbr }
 
 // GetIngestMode returns CreateStreamInput.IngestMode, and is useful for accessing the field via an interface.
 func (v *CreateStreamInput) GetIngestMode() *IngestMode { return v.IngestMode }
@@ -24224,20 +24366,20 @@ func (v *CryptoTopupStatusMutationResponse) GetCryptoTopupStatus() CryptoTopupSt
 	return v.CryptoTopupStatus
 }
 
-// DVR historical chapter mode. Determines how chapter (startMs, endMs)
-// ranges are produced for finalized replay artifacts. Configured at the
-// Stream level via updateStream and snapshotted onto the DVR artifact at
-// StartDVR.
+// How a recording is saved as chapters. Determines how chapter (startMs,
+// endMs) ranges are produced for replay after the broadcast. Configured at
+// the Stream level via updateStream and snapshotted onto the recording when
+// it starts. New streams default to WINDOW_SIZED.
 //
 // UTC-only — civil-time chapters resolve at the edge.
 type DVRChapterMode string
 
 const (
-	// Sequential fixed-length chapters of size tier.MaxWindowSeconds since the recording's start.
+	// Default. Sequential parts as long as the recording's own live rewind window, from the recording's start.
 	DVRChapterModeWindowSized DVRChapterMode = "WINDOW_SIZED"
 	// UTC-only intervalSeconds buckets, anchored at unix epoch 0.
 	DVRChapterModeFixedInterval DVRChapterMode = "FIXED_INTERVAL"
-	// Rolling DVR only: recording still runs, but no historical chapter artifacts are produced.
+	// Live rewind only: viewers can rewind while live, but nothing is kept after the broadcast and no recording.ready fires.
 	DVRChapterModeNone DVRChapterMode = "NONE"
 )
 
@@ -26959,7 +27101,7 @@ type DeveloperTokenFields struct {
 	TokenName string `json:"tokenName"`
 	// The secret token value (only returned on creation, null thereafter).
 	TokenValue *string `json:"tokenValue"`
-	// List of granted permissions (read:streams, write:streams, etc.).
+	// List of granted permission scopes (streams:read, streams:write, etc.).
 	Permissions []string `json:"permissions"`
 	// Token status (active, revoked, expired).
 	Status string `json:"status"`
@@ -28449,11 +28591,16 @@ type GeographicDistributionDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -28468,14 +28615,17 @@ type GeographicDistributionDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *GeographicDistributionDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *GeographicDistributionDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -28514,6 +28664,9 @@ func (v *GeographicDistributionDefaultFieldsStream) GetPlaybackId() string { ret
 
 // GetRecord returns GeographicDistributionDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *GeographicDistributionDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns GeographicDistributionDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *GeographicDistributionDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns GeographicDistributionDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *GeographicDistributionDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -28827,6 +28980,8 @@ type GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -28858,6 +29013,11 @@ func (v *GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget) GetPlat
 // GetName returns GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns GeographicDistributionDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -36375,13 +36535,15 @@ func (v *GetDVRChapterDvrChapterDVRChapter) GetLastFailureReason() *string {
 type GetDVRChapterResponse struct {
 	// Retrieve a single DVR chapter, including its finalized playbackId.
 	//
-	// Chapters are produced by the finalization queue as canonical .mkv
-	// VOD artifacts. Historical chapter mode is configured at the Stream level
-	// (Stream.dvrChapterMode) and snapshotted at StartDVR. Modes:
-	// - WINDOW_SIZED: sequential fixed-length chapters of size
-	// tier.MaxWindowSeconds since the recording's start.
+	// Chapters are the saved parts of a recording, produced by the
+	// finalization queue as canonical .mkv VOD artifacts. The chapter mode is
+	// configured at the Stream level (Stream.dvrChapterMode) and snapshotted
+	// when the recording starts. Modes:
+	// - WINDOW_SIZED (default): sequential parts as long as the recording's
+	// own live rewind window, from the recording's start.
 	// - FIXED_INTERVAL: UTC-only buckets of intervalSeconds, anchored at
 	// unix epoch 0.
+	// A NONE recording keeps live rewind only and has no chapters.
 	DvrChapter *GetDVRChapterDvrChapterDVRChapter `json:"dvrChapter"`
 }
 
@@ -48993,6 +49155,9 @@ func (v *GetNodeNodeStream) GetPlaybackId() string { return v.StreamInNodeDefaul
 // GetRecord returns GetNodeNodeStream.Record, and is useful for accessing the field via an interface.
 func (v *GetNodeNodeStream) GetRecord() bool { return v.StreamInNodeDefaultFields.Record }
 
+// GetLiveVideoAbr returns GetNodeNodeStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *GetNodeNodeStream) GetLiveVideoAbr() string { return v.StreamInNodeDefaultFields.LiveVideoAbr }
+
 // GetIngestMode returns GetNodeNodeStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *GetNodeNodeStream) GetIngestMode() IngestMode { return v.StreamInNodeDefaultFields.IngestMode }
 
@@ -49101,6 +49266,8 @@ type __premarshalGetNodeNodeStream struct {
 
 	Record bool `json:"record"`
 
+	LiveVideoAbr string `json:"liveVideoAbr"`
+
 	IngestMode IngestMode `json:"ingestMode"`
 
 	PullSource *StreamInNodeDefaultFieldsPullSourcePullSourceView `json:"pullSource"`
@@ -49149,6 +49316,7 @@ func (v *GetNodeNodeStream) __premarshalJSON() (*__premarshalGetNodeNodeStream, 
 	retval.StreamKey = v.StreamInNodeDefaultFields.StreamKey
 	retval.PlaybackId = v.StreamInNodeDefaultFields.PlaybackId
 	retval.Record = v.StreamInNodeDefaultFields.Record
+	retval.LiveVideoAbr = v.StreamInNodeDefaultFields.LiveVideoAbr
 	retval.IngestMode = v.StreamInNodeDefaultFields.IngestMode
 	retval.PullSource = v.StreamInNodeDefaultFields.PullSource
 	retval.ManagedSource = v.StreamInNodeDefaultFields.ManagedSource
@@ -52390,7 +52558,7 @@ func (v *GetOrchestratorVantagesOrchestratorVantagesOrchestratorVantage) GetGeoS
 }
 
 // GetGeoResolvedAt returns GetOrchestratorVantagesOrchestratorVantagesOrchestratorVantage.GeoResolvedAt, and is useful for accessing the field via an interface.
-func (v *GetOrchestratorVantagesOrchestratorVantagesOrchestratorVantage) GetGeoResolvedAt() time.Time {
+func (v *GetOrchestratorVantagesOrchestratorVantagesOrchestratorVantage) GetGeoResolvedAt() *time.Time {
 	return v.OrchestratorVantageDefaultFields.GeoResolvedAt
 }
 
@@ -52460,7 +52628,7 @@ type __premarshalGetOrchestratorVantagesOrchestratorVantagesOrchestratorVantage 
 
 	GeoSource string `json:"geoSource"`
 
-	GeoResolvedAt time.Time `json:"geoResolvedAt"`
+	GeoResolvedAt *time.Time `json:"geoResolvedAt"`
 
 	LatestLatencyMs int `json:"latestLatencyMs"`
 
@@ -55963,6 +56131,8 @@ func (v *GetRebufferingEventsConnectionResponse) GetAnalytics() GetRebufferingEv
 // GetRecentPullSourceEventsResponse is returned by GetRecentPullSourceEvents on success.
 type GetRecentPullSourceEventsResponse struct {
 	// Fetch a single stream by its global ID.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
 	Stream *GetRecentPullSourceEventsStream `json:"stream"`
 }
 
@@ -62389,9 +62559,192 @@ func (v *GetStreamHealthSummaryResponse) GetAnalytics() GetStreamHealthSummaryAn
 	return v.Analytics
 }
 
+// GetStreamKeyResponse is returned by GetStreamKey on success.
+type GetStreamKeyResponse struct {
+	// Fetch a single stream by its global ID.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
+	Stream *GetStreamKeyStream `json:"stream"`
+}
+
+// GetStream returns GetStreamKeyResponse.Stream, and is useful for accessing the field via an interface.
+func (v *GetStreamKeyResponse) GetStream() *GetStreamKeyStream { return v.Stream }
+
+// GetStreamKeyStream includes the requested fields of the GraphQL type Stream.
+// The GraphQL type's documentation follows.
+//
+// A live stream configuration with real-time operational metrics.
+// Streams are the core entity for broadcasting and viewing live content.
+type GetStreamKeyStream struct {
+	// Global unique identifier for Relay compatibility.
+	Id string `json:"id"`
+	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
+	StreamKey *string `json:"streamKey"`
+}
+
+// GetId returns GetStreamKeyStream.Id, and is useful for accessing the field via an interface.
+func (v *GetStreamKeyStream) GetId() string { return v.Id }
+
+// GetStreamKey returns GetStreamKeyStream.StreamKey, and is useful for accessing the field via an interface.
+func (v *GetStreamKeyStream) GetStreamKey() *string { return v.StreamKey }
+
+// GetStreamMetricsResponse is returned by GetStreamMetrics on success.
+type GetStreamMetricsResponse struct {
+	// Fetch a single stream by its global ID.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
+	Stream *GetStreamMetricsStream `json:"stream"`
+}
+
+// GetStream returns GetStreamMetricsResponse.Stream, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsResponse) GetStream() *GetStreamMetricsStream { return v.Stream }
+
+// GetStreamMetricsStream includes the requested fields of the GraphQL type Stream.
+// The GraphQL type's documentation follows.
+//
+// A live stream configuration with real-time operational metrics.
+// Streams are the core entity for broadcasting and viewing live content.
+type GetStreamMetricsStream struct {
+	// Global unique identifier for Relay compatibility.
+	Id string `json:"id"`
+	// Real-time operational metrics from the data plane.
+	// Includes viewer counts, quality metrics, and throughput data.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
+	Metrics *GetStreamMetricsStreamMetrics `json:"metrics"`
+}
+
+// GetId returns GetStreamMetricsStream.Id, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStream) GetId() string { return v.Id }
+
+// GetMetrics returns GetStreamMetricsStream.Metrics, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStream) GetMetrics() *GetStreamMetricsStreamMetrics { return v.Metrics }
+
+// GetStreamMetricsStreamMetrics includes the requested fields of the GraphQL type StreamMetrics.
+// The GraphQL type's documentation follows.
+//
+// Real-time operational metrics for a stream from the analytics data plane.
+// Updated frequently while stream is live, represents latest known state.
+type GetStreamMetricsStreamMetrics struct {
+	StreamMetricsFields `json:"-"`
+}
+
+// GetStatus returns GetStreamMetricsStreamMetrics.Status, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetStatus() StreamStatus { return v.StreamMetricsFields.Status }
+
+// GetIsLive returns GetStreamMetricsStreamMetrics.IsLive, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetIsLive() bool { return v.StreamMetricsFields.IsLive }
+
+// GetCurrentViewers returns GetStreamMetricsStreamMetrics.CurrentViewers, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetCurrentViewers() int {
+	return v.StreamMetricsFields.CurrentViewers
+}
+
+// GetStartedAt returns GetStreamMetricsStreamMetrics.StartedAt, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetStartedAt() *time.Time {
+	return v.StreamMetricsFields.StartedAt
+}
+
+// GetUpdatedAt returns GetStreamMetricsStreamMetrics.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetUpdatedAt() time.Time {
+	return v.StreamMetricsFields.UpdatedAt
+}
+
+// GetBufferState returns GetStreamMetricsStreamMetrics.BufferState, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetBufferState() *string {
+	return v.StreamMetricsFields.BufferState
+}
+
+// GetQualityTier returns GetStreamMetricsStreamMetrics.QualityTier, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetQualityTier() *string {
+	return v.StreamMetricsFields.QualityTier
+}
+
+// GetHasIssues returns GetStreamMetricsStreamMetrics.HasIssues, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetHasIssues() *bool { return v.StreamMetricsFields.HasIssues }
+
+// GetIssuesDescription returns GetStreamMetricsStreamMetrics.IssuesDescription, and is useful for accessing the field via an interface.
+func (v *GetStreamMetricsStreamMetrics) GetIssuesDescription() *string {
+	return v.StreamMetricsFields.IssuesDescription
+}
+
+func (v *GetStreamMetricsStreamMetrics) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*GetStreamMetricsStreamMetrics
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.GetStreamMetricsStreamMetrics = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.StreamMetricsFields)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalGetStreamMetricsStreamMetrics struct {
+	Status StreamStatus `json:"status"`
+
+	IsLive bool `json:"isLive"`
+
+	CurrentViewers int `json:"currentViewers"`
+
+	StartedAt *time.Time `json:"startedAt"`
+
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	BufferState *string `json:"bufferState"`
+
+	QualityTier *string `json:"qualityTier"`
+
+	HasIssues *bool `json:"hasIssues"`
+
+	IssuesDescription *string `json:"issuesDescription"`
+}
+
+func (v *GetStreamMetricsStreamMetrics) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *GetStreamMetricsStreamMetrics) __premarshalJSON() (*__premarshalGetStreamMetricsStreamMetrics, error) {
+	var retval __premarshalGetStreamMetricsStreamMetrics
+
+	retval.Status = v.StreamMetricsFields.Status
+	retval.IsLive = v.StreamMetricsFields.IsLive
+	retval.CurrentViewers = v.StreamMetricsFields.CurrentViewers
+	retval.StartedAt = v.StreamMetricsFields.StartedAt
+	retval.UpdatedAt = v.StreamMetricsFields.UpdatedAt
+	retval.BufferState = v.StreamMetricsFields.BufferState
+	retval.QualityTier = v.StreamMetricsFields.QualityTier
+	retval.HasIssues = v.StreamMetricsFields.HasIssues
+	retval.IssuesDescription = v.StreamMetricsFields.IssuesDescription
+	return &retval, nil
+}
+
 // GetStreamResponse is returned by GetStream on success.
 type GetStreamResponse struct {
 	// Fetch a single stream by its global ID.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
 	Stream *GetStreamStream `json:"stream"`
 }
 
@@ -62421,9 +62774,6 @@ func (v *GetStreamStream) GetName() string { return v.StreamFields.Name }
 
 // GetDescription returns GetStreamStream.Description, and is useful for accessing the field via an interface.
 func (v *GetStreamStream) GetDescription() *string { return v.StreamFields.Description }
-
-// GetStreamKey returns GetStreamStream.StreamKey, and is useful for accessing the field via an interface.
-func (v *GetStreamStream) GetStreamKey() *string { return v.StreamFields.StreamKey }
 
 // GetPlaybackId returns GetStreamStream.PlaybackId, and is useful for accessing the field via an interface.
 func (v *GetStreamStream) GetPlaybackId() string { return v.StreamFields.PlaybackId }
@@ -62459,11 +62809,6 @@ func (v *GetStreamStream) GetMonitoring() MonitoringToggle { return v.StreamFiel
 // GetPlaybackPolicy returns GetStreamStream.PlaybackPolicy, and is useful for accessing the field via an interface.
 func (v *GetStreamStream) GetPlaybackPolicy() *StreamFieldsPlaybackPolicy {
 	return v.StreamFields.PlaybackPolicy
-}
-
-// GetMetrics returns GetStreamStream.Metrics, and is useful for accessing the field via an interface.
-func (v *GetStreamStream) GetMetrics() *StreamFieldsMetricsStreamMetrics {
-	return v.StreamFields.Metrics
 }
 
 func (v *GetStreamStream) UnmarshalJSON(b []byte) error {
@@ -62502,8 +62847,6 @@ type __premarshalGetStreamStream struct {
 
 	Description *string `json:"description"`
 
-	StreamKey *string `json:"streamKey"`
-
 	PlaybackId string `json:"playbackId"`
 
 	Record bool `json:"record"`
@@ -62523,8 +62866,6 @@ type __premarshalGetStreamStream struct {
 	Monitoring MonitoringToggle `json:"monitoring"`
 
 	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
-
-	Metrics *StreamFieldsMetricsStreamMetrics `json:"metrics"`
 }
 
 func (v *GetStreamStream) MarshalJSON() ([]byte, error) {
@@ -62543,7 +62884,6 @@ func (v *GetStreamStream) __premarshalJSON() (*__premarshalGetStreamStream, erro
 	retval.StreamId = v.StreamFields.StreamId
 	retval.Name = v.StreamFields.Name
 	retval.Description = v.StreamFields.Description
-	retval.StreamKey = v.StreamFields.StreamKey
 	retval.PlaybackId = v.StreamFields.PlaybackId
 	retval.Record = v.StreamFields.Record
 	retval.IngestMode = v.StreamFields.IngestMode
@@ -62554,7 +62894,6 @@ func (v *GetStreamStream) __premarshalJSON() (*__premarshalGetStreamStream, erro
 	retval.DvrChapterIntervalSeconds = v.StreamFields.DvrChapterIntervalSeconds
 	retval.Monitoring = v.StreamFields.Monitoring
 	retval.PlaybackPolicy = v.StreamFields.PlaybackPolicy
-	retval.Metrics = v.StreamFields.Metrics
 	return &retval, nil
 }
 
@@ -70832,6 +71171,8 @@ func (v *ListDeveloperTokensResponse) GetDeveloperTokensConnection() ListDevelop
 // ListPushTargetsResponse is returned by ListPushTargets on success.
 type ListPushTargetsResponse struct {
 	// Fetch a single stream by its global ID.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
 	Stream *ListPushTargetsStream `json:"stream"`
 }
 
@@ -71231,6 +71572,8 @@ func (v *ListSigningKeysSigningKeysConnectionPageInfo) __premarshalJSON() (*__pr
 // ListStreamKeysResponse is returned by ListStreamKeys on success.
 type ListStreamKeysResponse struct {
 	// List all stream keys for a specific stream.
+	// Stream keys are publishing credentials, so an API token needs the
+	// streams:write scope.
 	StreamKeysConnection ListStreamKeysStreamKeysConnection `json:"streamKeysConnection"`
 }
 
@@ -71447,9 +71790,273 @@ func (v *ListStreamKeysStreamKeysConnectionPageInfo) __premarshalJSON() (*__prem
 	return &retval, nil
 }
 
+// ListStreamMetricsResponse is returned by ListStreamMetrics on success.
+type ListStreamMetricsResponse struct {
+	// List all streams for the current tenant with pagination.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
+	StreamsConnection ListStreamMetricsStreamsConnection `json:"streamsConnection"`
+}
+
+// GetStreamsConnection returns ListStreamMetricsResponse.StreamsConnection, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsResponse) GetStreamsConnection() ListStreamMetricsStreamsConnection {
+	return v.StreamsConnection
+}
+
+// ListStreamMetricsStreamsConnection includes the requested fields of the GraphQL type StreamsConnection.
+type ListStreamMetricsStreamsConnection struct {
+	Nodes      []ListStreamMetricsStreamsConnectionNodesStream `json:"nodes"`
+	PageInfo   ListStreamMetricsStreamsConnectionPageInfo      `json:"pageInfo"`
+	TotalCount int                                             `json:"totalCount"`
+}
+
+// GetNodes returns ListStreamMetricsStreamsConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnection) GetNodes() []ListStreamMetricsStreamsConnectionNodesStream {
+	return v.Nodes
+}
+
+// GetPageInfo returns ListStreamMetricsStreamsConnection.PageInfo, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnection) GetPageInfo() ListStreamMetricsStreamsConnectionPageInfo {
+	return v.PageInfo
+}
+
+// GetTotalCount returns ListStreamMetricsStreamsConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnection) GetTotalCount() int { return v.TotalCount }
+
+// ListStreamMetricsStreamsConnectionNodesStream includes the requested fields of the GraphQL type Stream.
+// The GraphQL type's documentation follows.
+//
+// A live stream configuration with real-time operational metrics.
+// Streams are the core entity for broadcasting and viewing live content.
+type ListStreamMetricsStreamsConnectionNodesStream struct {
+	// Global unique identifier for Relay compatibility.
+	Id string `json:"id"`
+	// Public stream UUID used for analytics and service APIs (not the Relay ID).
+	StreamId string `json:"streamId"`
+	// Real-time operational metrics from the data plane.
+	// Includes viewer counts, quality metrics, and throughput data.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
+	Metrics *ListStreamMetricsStreamsConnectionNodesStreamMetrics `json:"metrics"`
+}
+
+// GetId returns ListStreamMetricsStreamsConnectionNodesStream.Id, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStream) GetId() string { return v.Id }
+
+// GetStreamId returns ListStreamMetricsStreamsConnectionNodesStream.StreamId, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStream) GetStreamId() string { return v.StreamId }
+
+// GetMetrics returns ListStreamMetricsStreamsConnectionNodesStream.Metrics, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStream) GetMetrics() *ListStreamMetricsStreamsConnectionNodesStreamMetrics {
+	return v.Metrics
+}
+
+// ListStreamMetricsStreamsConnectionNodesStreamMetrics includes the requested fields of the GraphQL type StreamMetrics.
+// The GraphQL type's documentation follows.
+//
+// Real-time operational metrics for a stream from the analytics data plane.
+// Updated frequently while stream is live, represents latest known state.
+type ListStreamMetricsStreamsConnectionNodesStreamMetrics struct {
+	StreamMetricsFields `json:"-"`
+}
+
+// GetStatus returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.Status, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetStatus() StreamStatus {
+	return v.StreamMetricsFields.Status
+}
+
+// GetIsLive returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.IsLive, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetIsLive() bool {
+	return v.StreamMetricsFields.IsLive
+}
+
+// GetCurrentViewers returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.CurrentViewers, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetCurrentViewers() int {
+	return v.StreamMetricsFields.CurrentViewers
+}
+
+// GetStartedAt returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.StartedAt, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetStartedAt() *time.Time {
+	return v.StreamMetricsFields.StartedAt
+}
+
+// GetUpdatedAt returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetUpdatedAt() time.Time {
+	return v.StreamMetricsFields.UpdatedAt
+}
+
+// GetBufferState returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.BufferState, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetBufferState() *string {
+	return v.StreamMetricsFields.BufferState
+}
+
+// GetQualityTier returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.QualityTier, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetQualityTier() *string {
+	return v.StreamMetricsFields.QualityTier
+}
+
+// GetHasIssues returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.HasIssues, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetHasIssues() *bool {
+	return v.StreamMetricsFields.HasIssues
+}
+
+// GetIssuesDescription returns ListStreamMetricsStreamsConnectionNodesStreamMetrics.IssuesDescription, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) GetIssuesDescription() *string {
+	return v.StreamMetricsFields.IssuesDescription
+}
+
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*ListStreamMetricsStreamsConnectionNodesStreamMetrics
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.ListStreamMetricsStreamsConnectionNodesStreamMetrics = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.StreamMetricsFields)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalListStreamMetricsStreamsConnectionNodesStreamMetrics struct {
+	Status StreamStatus `json:"status"`
+
+	IsLive bool `json:"isLive"`
+
+	CurrentViewers int `json:"currentViewers"`
+
+	StartedAt *time.Time `json:"startedAt"`
+
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	BufferState *string `json:"bufferState"`
+
+	QualityTier *string `json:"qualityTier"`
+
+	HasIssues *bool `json:"hasIssues"`
+
+	IssuesDescription *string `json:"issuesDescription"`
+}
+
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *ListStreamMetricsStreamsConnectionNodesStreamMetrics) __premarshalJSON() (*__premarshalListStreamMetricsStreamsConnectionNodesStreamMetrics, error) {
+	var retval __premarshalListStreamMetricsStreamsConnectionNodesStreamMetrics
+
+	retval.Status = v.StreamMetricsFields.Status
+	retval.IsLive = v.StreamMetricsFields.IsLive
+	retval.CurrentViewers = v.StreamMetricsFields.CurrentViewers
+	retval.StartedAt = v.StreamMetricsFields.StartedAt
+	retval.UpdatedAt = v.StreamMetricsFields.UpdatedAt
+	retval.BufferState = v.StreamMetricsFields.BufferState
+	retval.QualityTier = v.StreamMetricsFields.QualityTier
+	retval.HasIssues = v.StreamMetricsFields.HasIssues
+	retval.IssuesDescription = v.StreamMetricsFields.IssuesDescription
+	return &retval, nil
+}
+
+// ListStreamMetricsStreamsConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
+type ListStreamMetricsStreamsConnectionPageInfo struct {
+	PageInfoFields `json:"-"`
+}
+
+// GetStartCursor returns ListStreamMetricsStreamsConnectionPageInfo.StartCursor, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionPageInfo) GetStartCursor() *string {
+	return v.PageInfoFields.StartCursor
+}
+
+// GetEndCursor returns ListStreamMetricsStreamsConnectionPageInfo.EndCursor, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionPageInfo) GetEndCursor() *string {
+	return v.PageInfoFields.EndCursor
+}
+
+// GetHasNextPage returns ListStreamMetricsStreamsConnectionPageInfo.HasNextPage, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionPageInfo) GetHasNextPage() bool {
+	return v.PageInfoFields.HasNextPage
+}
+
+// GetHasPreviousPage returns ListStreamMetricsStreamsConnectionPageInfo.HasPreviousPage, and is useful for accessing the field via an interface.
+func (v *ListStreamMetricsStreamsConnectionPageInfo) GetHasPreviousPage() bool {
+	return v.PageInfoFields.HasPreviousPage
+}
+
+func (v *ListStreamMetricsStreamsConnectionPageInfo) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*ListStreamMetricsStreamsConnectionPageInfo
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.ListStreamMetricsStreamsConnectionPageInfo = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.PageInfoFields)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalListStreamMetricsStreamsConnectionPageInfo struct {
+	StartCursor *string `json:"startCursor"`
+
+	EndCursor *string `json:"endCursor"`
+
+	HasNextPage bool `json:"hasNextPage"`
+
+	HasPreviousPage bool `json:"hasPreviousPage"`
+}
+
+func (v *ListStreamMetricsStreamsConnectionPageInfo) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *ListStreamMetricsStreamsConnectionPageInfo) __premarshalJSON() (*__premarshalListStreamMetricsStreamsConnectionPageInfo, error) {
+	var retval __premarshalListStreamMetricsStreamsConnectionPageInfo
+
+	retval.StartCursor = v.PageInfoFields.StartCursor
+	retval.EndCursor = v.PageInfoFields.EndCursor
+	retval.HasNextPage = v.PageInfoFields.HasNextPage
+	retval.HasPreviousPage = v.PageInfoFields.HasPreviousPage
+	return &retval, nil
+}
+
 // ListStreamsResponse is returned by ListStreams on success.
 type ListStreamsResponse struct {
 	// List all streams for the current tenant with pagination.
+	// An API token needs the streams:read or streams:write scope. Stream.streamKey
+	// needs streams:write.
 	StreamsConnection ListStreamsStreamsConnection `json:"streamsConnection"`
 }
 
@@ -71508,11 +72115,6 @@ func (v *ListStreamsStreamsConnectionNodesStream) GetDescription() *string {
 	return v.StreamFields.Description
 }
 
-// GetStreamKey returns ListStreamsStreamsConnectionNodesStream.StreamKey, and is useful for accessing the field via an interface.
-func (v *ListStreamsStreamsConnectionNodesStream) GetStreamKey() *string {
-	return v.StreamFields.StreamKey
-}
-
 // GetPlaybackId returns ListStreamsStreamsConnectionNodesStream.PlaybackId, and is useful for accessing the field via an interface.
 func (v *ListStreamsStreamsConnectionNodesStream) GetPlaybackId() string {
 	return v.StreamFields.PlaybackId
@@ -71561,11 +72163,6 @@ func (v *ListStreamsStreamsConnectionNodesStream) GetPlaybackPolicy() *StreamFie
 	return v.StreamFields.PlaybackPolicy
 }
 
-// GetMetrics returns ListStreamsStreamsConnectionNodesStream.Metrics, and is useful for accessing the field via an interface.
-func (v *ListStreamsStreamsConnectionNodesStream) GetMetrics() *StreamFieldsMetricsStreamMetrics {
-	return v.StreamFields.Metrics
-}
-
 func (v *ListStreamsStreamsConnectionNodesStream) UnmarshalJSON(b []byte) error {
 
 	if string(b) == "null" {
@@ -71602,8 +72199,6 @@ type __premarshalListStreamsStreamsConnectionNodesStream struct {
 
 	Description *string `json:"description"`
 
-	StreamKey *string `json:"streamKey"`
-
 	PlaybackId string `json:"playbackId"`
 
 	Record bool `json:"record"`
@@ -71623,8 +72218,6 @@ type __premarshalListStreamsStreamsConnectionNodesStream struct {
 	Monitoring MonitoringToggle `json:"monitoring"`
 
 	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
-
-	Metrics *StreamFieldsMetricsStreamMetrics `json:"metrics"`
 }
 
 func (v *ListStreamsStreamsConnectionNodesStream) MarshalJSON() ([]byte, error) {
@@ -71643,7 +72236,6 @@ func (v *ListStreamsStreamsConnectionNodesStream) __premarshalJSON() (*__premars
 	retval.StreamId = v.StreamFields.StreamId
 	retval.Name = v.StreamFields.Name
 	retval.Description = v.StreamFields.Description
-	retval.StreamKey = v.StreamFields.StreamKey
 	retval.PlaybackId = v.StreamFields.PlaybackId
 	retval.Record = v.StreamFields.Record
 	retval.IngestMode = v.StreamFields.IngestMode
@@ -71654,7 +72246,6 @@ func (v *ListStreamsStreamsConnectionNodesStream) __premarshalJSON() (*__premars
 	retval.DvrChapterIntervalSeconds = v.StreamFields.DvrChapterIntervalSeconds
 	retval.Monitoring = v.StreamFields.Monitoring
 	retval.PlaybackPolicy = v.StreamFields.PlaybackPolicy
-	retval.Metrics = v.StreamFields.Metrics
 	return &retval, nil
 }
 
@@ -77907,21 +78498,22 @@ func (v *OrchestratorPerformancePointDefaultFields) GetAiMaxLatencyMs() int { re
 // address, resolved IP). DNS round-robin / geo-anycast surfaces as multiple
 // vantages with different `resolvedIp`.
 type OrchestratorVantageDefaultFields struct {
-	TenantId        string    `json:"tenantId"`
-	GatewayId       string    `json:"gatewayId"`
-	GatewayRegion   string    `json:"gatewayRegion"`
-	OrchAddr        string    `json:"orchAddr"`
-	ResolvedIp      string    `json:"resolvedIp"`
-	Latitude        float64   `json:"latitude"`
-	Longitude       float64   `json:"longitude"`
-	City            string    `json:"city"`
-	CountryCode     string    `json:"countryCode"`
-	GeoSource       string    `json:"geoSource"`
-	GeoResolvedAt   time.Time `json:"geoResolvedAt"`
-	LatestLatencyMs int       `json:"latestLatencyMs"`
-	Score           float64   `json:"score"`
-	DialedRecently  bool      `json:"dialedRecently"`
-	LastSeen        time.Time `json:"lastSeen"`
+	TenantId      string  `json:"tenantId"`
+	GatewayId     string  `json:"gatewayId"`
+	GatewayRegion string  `json:"gatewayRegion"`
+	OrchAddr      string  `json:"orchAddr"`
+	ResolvedIp    string  `json:"resolvedIp"`
+	Latitude      float64 `json:"latitude"`
+	Longitude     float64 `json:"longitude"`
+	City          string  `json:"city"`
+	CountryCode   string  `json:"countryCode"`
+	GeoSource     string  `json:"geoSource"`
+	// When the vantage's location was resolved; null while it has not been.
+	GeoResolvedAt   *time.Time `json:"geoResolvedAt"`
+	LatestLatencyMs int        `json:"latestLatencyMs"`
+	Score           float64    `json:"score"`
+	DialedRecently  bool       `json:"dialedRecently"`
+	LastSeen        time.Time  `json:"lastSeen"`
 }
 
 // GetTenantId returns OrchestratorVantageDefaultFields.TenantId, and is useful for accessing the field via an interface.
@@ -77955,7 +78547,7 @@ func (v *OrchestratorVantageDefaultFields) GetCountryCode() string { return v.Co
 func (v *OrchestratorVantageDefaultFields) GetGeoSource() string { return v.GeoSource }
 
 // GetGeoResolvedAt returns OrchestratorVantageDefaultFields.GeoResolvedAt, and is useful for accessing the field via an interface.
-func (v *OrchestratorVantageDefaultFields) GetGeoResolvedAt() time.Time { return v.GeoResolvedAt }
+func (v *OrchestratorVantageDefaultFields) GetGeoResolvedAt() *time.Time { return v.GeoResolvedAt }
 
 // GetLatestLatencyMs returns OrchestratorVantageDefaultFields.LatestLatencyMs, and is useful for accessing the field via an interface.
 func (v *OrchestratorVantageDefaultFields) GetLatestLatencyMs() int { return v.LatestLatencyMs }
@@ -78147,21 +78739,22 @@ func (v *OrchestratorWithDetailsDefaultFieldsOrchestrator) GetUpdatedAt() time.T
 // address, resolved IP). DNS round-robin / geo-anycast surfaces as multiple
 // vantages with different `resolvedIp`.
 type OrchestratorWithDetailsDefaultFieldsVantagesOrchestratorVantage struct {
-	TenantId        string    `json:"tenantId"`
-	GatewayId       string    `json:"gatewayId"`
-	GatewayRegion   string    `json:"gatewayRegion"`
-	OrchAddr        string    `json:"orchAddr"`
-	ResolvedIp      string    `json:"resolvedIp"`
-	Latitude        float64   `json:"latitude"`
-	Longitude       float64   `json:"longitude"`
-	City            string    `json:"city"`
-	CountryCode     string    `json:"countryCode"`
-	GeoSource       string    `json:"geoSource"`
-	GeoResolvedAt   time.Time `json:"geoResolvedAt"`
-	LatestLatencyMs int       `json:"latestLatencyMs"`
-	Score           float64   `json:"score"`
-	DialedRecently  bool      `json:"dialedRecently"`
-	LastSeen        time.Time `json:"lastSeen"`
+	TenantId      string  `json:"tenantId"`
+	GatewayId     string  `json:"gatewayId"`
+	GatewayRegion string  `json:"gatewayRegion"`
+	OrchAddr      string  `json:"orchAddr"`
+	ResolvedIp    string  `json:"resolvedIp"`
+	Latitude      float64 `json:"latitude"`
+	Longitude     float64 `json:"longitude"`
+	City          string  `json:"city"`
+	CountryCode   string  `json:"countryCode"`
+	GeoSource     string  `json:"geoSource"`
+	// When the vantage's location was resolved; null while it has not been.
+	GeoResolvedAt   *time.Time `json:"geoResolvedAt"`
+	LatestLatencyMs int        `json:"latestLatencyMs"`
+	Score           float64    `json:"score"`
+	DialedRecently  bool       `json:"dialedRecently"`
+	LastSeen        time.Time  `json:"lastSeen"`
 }
 
 // GetTenantId returns OrchestratorWithDetailsDefaultFieldsVantagesOrchestratorVantage.TenantId, and is useful for accessing the field via an interface.
@@ -78215,7 +78808,7 @@ func (v *OrchestratorWithDetailsDefaultFieldsVantagesOrchestratorVantage) GetGeo
 }
 
 // GetGeoResolvedAt returns OrchestratorWithDetailsDefaultFieldsVantagesOrchestratorVantage.GeoResolvedAt, and is useful for accessing the field via an interface.
-func (v *OrchestratorWithDetailsDefaultFieldsVantagesOrchestratorVantage) GetGeoResolvedAt() time.Time {
+func (v *OrchestratorWithDetailsDefaultFieldsVantagesOrchestratorVantage) GetGeoResolvedAt() *time.Time {
 	return v.GeoResolvedAt
 }
 
@@ -79234,11 +79827,16 @@ type ProcessingUsageRecordDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -79253,14 +79851,17 @@ type ProcessingUsageRecordDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ProcessingUsageRecordDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ProcessingUsageRecordDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -79299,6 +79900,9 @@ func (v *ProcessingUsageRecordDefaultFieldsStream) GetPlaybackId() string { retu
 
 // GetRecord returns ProcessingUsageRecordDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ProcessingUsageRecordDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ProcessingUsageRecordDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ProcessingUsageRecordDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ProcessingUsageRecordDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ProcessingUsageRecordDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -79610,6 +80214,8 @@ type ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -79641,6 +80247,11 @@ func (v *ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget) GetPlatf
 // GetName returns ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns ProcessingUsageRecordDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -80026,11 +80637,16 @@ type ProcessingUsageRecordInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -80045,14 +80661,17 @@ type ProcessingUsageRecordInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ProcessingUsageRecordInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ProcessingUsageRecordInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -80093,6 +80712,11 @@ func (v *ProcessingUsageRecordInNodeDefaultFieldsStream) GetPlaybackId() string 
 
 // GetRecord returns ProcessingUsageRecordInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ProcessingUsageRecordInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ProcessingUsageRecordInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ProcessingUsageRecordInNodeDefaultFieldsStream) GetLiveVideoAbr() string {
+	return v.LiveVideoAbr
+}
 
 // GetIngestMode returns ProcessingUsageRecordInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ProcessingUsageRecordInNodeDefaultFieldsStream) GetIngestMode() IngestMode {
@@ -80414,6 +81038,8 @@ type ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget struct 
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -80447,6 +81073,11 @@ func (v *ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget) Ge
 // GetName returns ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns ProcessingUsageRecordInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -81209,11 +81840,16 @@ type QualityTierDailyDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -81228,14 +81864,17 @@ type QualityTierDailyDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *QualityTierDailyDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *QualityTierDailyDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -81274,6 +81913,9 @@ func (v *QualityTierDailyDefaultFieldsStream) GetPlaybackId() string { return v.
 
 // GetRecord returns QualityTierDailyDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *QualityTierDailyDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns QualityTierDailyDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *QualityTierDailyDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns QualityTierDailyDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *QualityTierDailyDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -81561,6 +82203,8 @@ type QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -81591,6 +82235,11 @@ func (v *QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget) GetPlatform()
 
 // GetName returns QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *QualityTierDailyDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -81793,11 +82442,16 @@ type RebufferingEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -81812,14 +82466,17 @@ type RebufferingEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *RebufferingEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []RebufferingEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *RebufferingEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -81858,6 +82515,9 @@ func (v *RebufferingEventDefaultFieldsStream) GetPlaybackId() string { return v.
 
 // GetRecord returns RebufferingEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *RebufferingEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns RebufferingEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *RebufferingEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns RebufferingEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *RebufferingEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -82145,6 +82805,8 @@ type RebufferingEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -82175,6 +82837,11 @@ func (v *RebufferingEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform()
 
 // GetName returns RebufferingEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *RebufferingEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns RebufferingEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *RebufferingEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns RebufferingEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *RebufferingEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -82446,83 +83113,86 @@ func (v *RefreshStreamKeyRefreshStreamKeyNotFoundError) __premarshalJSON() (*__p
 // A live stream configuration with real-time operational metrics.
 // Streams are the core entity for broadcasting and viewing live content.
 type RefreshStreamKeyRefreshStreamKeyStream struct {
-	Typename     *string `json:"__typename"`
-	StreamFields `json:"-"`
+	Typename            *string `json:"__typename"`
+	StreamWithKeyFields `json:"-"`
 }
 
 // GetTypename returns RefreshStreamKeyRefreshStreamKeyStream.Typename, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetTypename() *string { return v.Typename }
 
+// GetStreamKey returns RefreshStreamKeyRefreshStreamKeyStream.StreamKey, and is useful for accessing the field via an interface.
+func (v *RefreshStreamKeyRefreshStreamKeyStream) GetStreamKey() *string {
+	return v.StreamWithKeyFields.StreamKey
+}
+
 // GetId returns RefreshStreamKeyRefreshStreamKeyStream.Id, and is useful for accessing the field via an interface.
-func (v *RefreshStreamKeyRefreshStreamKeyStream) GetId() string { return v.StreamFields.Id }
+func (v *RefreshStreamKeyRefreshStreamKeyStream) GetId() string {
+	return v.StreamWithKeyFields.StreamFields.Id
+}
 
 // GetStreamId returns RefreshStreamKeyRefreshStreamKeyStream.StreamId, and is useful for accessing the field via an interface.
-func (v *RefreshStreamKeyRefreshStreamKeyStream) GetStreamId() string { return v.StreamFields.StreamId }
+func (v *RefreshStreamKeyRefreshStreamKeyStream) GetStreamId() string {
+	return v.StreamWithKeyFields.StreamFields.StreamId
+}
 
 // GetName returns RefreshStreamKeyRefreshStreamKeyStream.Name, and is useful for accessing the field via an interface.
-func (v *RefreshStreamKeyRefreshStreamKeyStream) GetName() string { return v.StreamFields.Name }
+func (v *RefreshStreamKeyRefreshStreamKeyStream) GetName() string {
+	return v.StreamWithKeyFields.StreamFields.Name
+}
 
 // GetDescription returns RefreshStreamKeyRefreshStreamKeyStream.Description, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetDescription() *string {
-	return v.StreamFields.Description
-}
-
-// GetStreamKey returns RefreshStreamKeyRefreshStreamKeyStream.StreamKey, and is useful for accessing the field via an interface.
-func (v *RefreshStreamKeyRefreshStreamKeyStream) GetStreamKey() *string {
-	return v.StreamFields.StreamKey
+	return v.StreamWithKeyFields.StreamFields.Description
 }
 
 // GetPlaybackId returns RefreshStreamKeyRefreshStreamKeyStream.PlaybackId, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetPlaybackId() string {
-	return v.StreamFields.PlaybackId
+	return v.StreamWithKeyFields.StreamFields.PlaybackId
 }
 
 // GetRecord returns RefreshStreamKeyRefreshStreamKeyStream.Record, and is useful for accessing the field via an interface.
-func (v *RefreshStreamKeyRefreshStreamKeyStream) GetRecord() bool { return v.StreamFields.Record }
+func (v *RefreshStreamKeyRefreshStreamKeyStream) GetRecord() bool {
+	return v.StreamWithKeyFields.StreamFields.Record
+}
 
 // GetIngestMode returns RefreshStreamKeyRefreshStreamKeyStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetIngestMode() IngestMode {
-	return v.StreamFields.IngestMode
+	return v.StreamWithKeyFields.StreamFields.IngestMode
 }
 
 // GetPullSource returns RefreshStreamKeyRefreshStreamKeyStream.PullSource, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetPullSource() *StreamFieldsPullSourcePullSourceView {
-	return v.StreamFields.PullSource
+	return v.StreamWithKeyFields.StreamFields.PullSource
 }
 
 // GetCreatedAt returns RefreshStreamKeyRefreshStreamKeyStream.CreatedAt, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetCreatedAt() time.Time {
-	return v.StreamFields.CreatedAt
+	return v.StreamWithKeyFields.StreamFields.CreatedAt
 }
 
 // GetUpdatedAt returns RefreshStreamKeyRefreshStreamKeyStream.UpdatedAt, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetUpdatedAt() time.Time {
-	return v.StreamFields.UpdatedAt
+	return v.StreamWithKeyFields.StreamFields.UpdatedAt
 }
 
 // GetDvrChapterMode returns RefreshStreamKeyRefreshStreamKeyStream.DvrChapterMode, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetDvrChapterMode() *DVRChapterMode {
-	return v.StreamFields.DvrChapterMode
+	return v.StreamWithKeyFields.StreamFields.DvrChapterMode
 }
 
 // GetDvrChapterIntervalSeconds returns RefreshStreamKeyRefreshStreamKeyStream.DvrChapterIntervalSeconds, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetDvrChapterIntervalSeconds() *int {
-	return v.StreamFields.DvrChapterIntervalSeconds
+	return v.StreamWithKeyFields.StreamFields.DvrChapterIntervalSeconds
 }
 
 // GetMonitoring returns RefreshStreamKeyRefreshStreamKeyStream.Monitoring, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetMonitoring() MonitoringToggle {
-	return v.StreamFields.Monitoring
+	return v.StreamWithKeyFields.StreamFields.Monitoring
 }
 
 // GetPlaybackPolicy returns RefreshStreamKeyRefreshStreamKeyStream.PlaybackPolicy, and is useful for accessing the field via an interface.
 func (v *RefreshStreamKeyRefreshStreamKeyStream) GetPlaybackPolicy() *StreamFieldsPlaybackPolicy {
-	return v.StreamFields.PlaybackPolicy
-}
-
-// GetMetrics returns RefreshStreamKeyRefreshStreamKeyStream.Metrics, and is useful for accessing the field via an interface.
-func (v *RefreshStreamKeyRefreshStreamKeyStream) GetMetrics() *StreamFieldsMetricsStreamMetrics {
-	return v.StreamFields.Metrics
+	return v.StreamWithKeyFields.StreamFields.PlaybackPolicy
 }
 
 func (v *RefreshStreamKeyRefreshStreamKeyStream) UnmarshalJSON(b []byte) error {
@@ -82543,7 +83213,7 @@ func (v *RefreshStreamKeyRefreshStreamKeyStream) UnmarshalJSON(b []byte) error {
 	}
 
 	err = json.Unmarshal(
-		b, &v.StreamFields)
+		b, &v.StreamWithKeyFields)
 	if err != nil {
 		return err
 	}
@@ -82553,6 +83223,8 @@ func (v *RefreshStreamKeyRefreshStreamKeyStream) UnmarshalJSON(b []byte) error {
 type __premarshalRefreshStreamKeyRefreshStreamKeyStream struct {
 	Typename *string `json:"__typename"`
 
+	StreamKey *string `json:"streamKey"`
+
 	Id string `json:"id"`
 
 	StreamId string `json:"streamId"`
@@ -82560,8 +83232,6 @@ type __premarshalRefreshStreamKeyRefreshStreamKeyStream struct {
 	Name string `json:"name"`
 
 	Description *string `json:"description"`
-
-	StreamKey *string `json:"streamKey"`
 
 	PlaybackId string `json:"playbackId"`
 
@@ -82582,8 +83252,6 @@ type __premarshalRefreshStreamKeyRefreshStreamKeyStream struct {
 	Monitoring MonitoringToggle `json:"monitoring"`
 
 	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
-
-	Metrics *StreamFieldsMetricsStreamMetrics `json:"metrics"`
 }
 
 func (v *RefreshStreamKeyRefreshStreamKeyStream) MarshalJSON() ([]byte, error) {
@@ -82598,22 +83266,21 @@ func (v *RefreshStreamKeyRefreshStreamKeyStream) __premarshalJSON() (*__premarsh
 	var retval __premarshalRefreshStreamKeyRefreshStreamKeyStream
 
 	retval.Typename = v.Typename
-	retval.Id = v.StreamFields.Id
-	retval.StreamId = v.StreamFields.StreamId
-	retval.Name = v.StreamFields.Name
-	retval.Description = v.StreamFields.Description
-	retval.StreamKey = v.StreamFields.StreamKey
-	retval.PlaybackId = v.StreamFields.PlaybackId
-	retval.Record = v.StreamFields.Record
-	retval.IngestMode = v.StreamFields.IngestMode
-	retval.PullSource = v.StreamFields.PullSource
-	retval.CreatedAt = v.StreamFields.CreatedAt
-	retval.UpdatedAt = v.StreamFields.UpdatedAt
-	retval.DvrChapterMode = v.StreamFields.DvrChapterMode
-	retval.DvrChapterIntervalSeconds = v.StreamFields.DvrChapterIntervalSeconds
-	retval.Monitoring = v.StreamFields.Monitoring
-	retval.PlaybackPolicy = v.StreamFields.PlaybackPolicy
-	retval.Metrics = v.StreamFields.Metrics
+	retval.StreamKey = v.StreamWithKeyFields.StreamKey
+	retval.Id = v.StreamWithKeyFields.StreamFields.Id
+	retval.StreamId = v.StreamWithKeyFields.StreamFields.StreamId
+	retval.Name = v.StreamWithKeyFields.StreamFields.Name
+	retval.Description = v.StreamWithKeyFields.StreamFields.Description
+	retval.PlaybackId = v.StreamWithKeyFields.StreamFields.PlaybackId
+	retval.Record = v.StreamWithKeyFields.StreamFields.Record
+	retval.IngestMode = v.StreamWithKeyFields.StreamFields.IngestMode
+	retval.PullSource = v.StreamWithKeyFields.StreamFields.PullSource
+	retval.CreatedAt = v.StreamWithKeyFields.StreamFields.CreatedAt
+	retval.UpdatedAt = v.StreamWithKeyFields.StreamFields.UpdatedAt
+	retval.DvrChapterMode = v.StreamWithKeyFields.StreamFields.DvrChapterMode
+	retval.DvrChapterIntervalSeconds = v.StreamWithKeyFields.StreamFields.DvrChapterIntervalSeconds
+	retval.Monitoring = v.StreamWithKeyFields.StreamFields.Monitoring
+	retval.PlaybackPolicy = v.StreamWithKeyFields.StreamFields.PlaybackPolicy
 	return &retval, nil
 }
 
@@ -89094,11 +89761,16 @@ type RoutingEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -89113,14 +89785,17 @@ type RoutingEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *RoutingEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []RoutingEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *RoutingEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -89159,6 +89834,9 @@ func (v *RoutingEventDefaultFieldsStream) GetPlaybackId() string { return v.Play
 
 // GetRecord returns RoutingEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *RoutingEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns RoutingEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *RoutingEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns RoutingEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *RoutingEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -89434,6 +90112,8 @@ type RoutingEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -89464,6 +90144,11 @@ func (v *RoutingEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *st
 
 // GetName returns RoutingEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *RoutingEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns RoutingEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *RoutingEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns RoutingEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *RoutingEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -96066,11 +96751,16 @@ type StorageEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -96085,14 +96775,17 @@ type StorageEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StorageEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StorageEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StorageEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -96131,6 +96824,9 @@ func (v *StorageEventDefaultFieldsStream) GetPlaybackId() string { return v.Play
 
 // GetRecord returns StorageEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StorageEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StorageEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StorageEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StorageEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StorageEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -96406,6 +97102,8 @@ type StorageEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -96436,6 +97134,11 @@ func (v *StorageEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *st
 
 // GetName returns StorageEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StorageEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns StorageEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StorageEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns StorageEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *StorageEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -96632,11 +97335,16 @@ type StorageEventInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -96651,14 +97359,17 @@ type StorageEventInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StorageEventInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StorageEventInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -96697,6 +97408,9 @@ func (v *StorageEventInNodeDefaultFieldsStream) GetPlaybackId() string { return 
 
 // GetRecord returns StorageEventInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StorageEventInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StorageEventInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StorageEventInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StorageEventInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StorageEventInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -96994,6 +97708,8 @@ type StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -97024,6 +97740,11 @@ func (v *StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatform
 
 // GetName returns StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *StorageEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -97248,11 +97969,16 @@ type StreamAnalyticsDailyDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -97267,14 +97993,17 @@ type StreamAnalyticsDailyDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamAnalyticsDailyDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamAnalyticsDailyDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -97313,6 +98042,9 @@ func (v *StreamAnalyticsDailyDefaultFieldsStream) GetPlaybackId() string { retur
 
 // GetRecord returns StreamAnalyticsDailyDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamAnalyticsDailyDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamAnalyticsDailyDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamAnalyticsDailyDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamAnalyticsDailyDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamAnalyticsDailyDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -97622,6 +98354,8 @@ type StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -97653,6 +98387,11 @@ func (v *StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget) GetPlatfo
 // GetName returns StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns StreamAnalyticsDailyDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -97991,11 +98730,16 @@ type StreamAnalyticsSummaryDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -98010,14 +98754,17 @@ type StreamAnalyticsSummaryDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamAnalyticsSummaryDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamAnalyticsSummaryDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -98056,6 +98803,9 @@ func (v *StreamAnalyticsSummaryDefaultFieldsStream) GetPlaybackId() string { ret
 
 // GetRecord returns StreamAnalyticsSummaryDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamAnalyticsSummaryDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamAnalyticsSummaryDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamAnalyticsSummaryDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamAnalyticsSummaryDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamAnalyticsSummaryDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -98369,6 +99119,8 @@ type StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -98400,6 +99152,11 @@ func (v *StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget) GetPlat
 // GetName returns StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns StreamAnalyticsSummaryDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -98582,11 +99339,16 @@ type StreamConnectionHourlyDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -98601,14 +99363,17 @@ type StreamConnectionHourlyDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamConnectionHourlyDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamConnectionHourlyDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -98647,6 +99412,9 @@ func (v *StreamConnectionHourlyDefaultFieldsStream) GetPlaybackId() string { ret
 
 // GetRecord returns StreamConnectionHourlyDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamConnectionHourlyDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamConnectionHourlyDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamConnectionHourlyDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamConnectionHourlyDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamConnectionHourlyDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -98960,6 +99728,8 @@ type StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -98991,6 +99761,11 @@ func (v *StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget) GetPlat
 // GetName returns StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns StreamConnectionHourlyDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -99278,11 +100053,16 @@ type StreamEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -99297,14 +100077,17 @@ type StreamEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -99343,6 +100126,9 @@ func (v *StreamEventDefaultFieldsStream) GetPlaybackId() string { return v.Playb
 
 // GetRecord returns StreamEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -99616,6 +100402,8 @@ type StreamEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -99644,6 +100432,11 @@ func (v *StreamEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *str
 
 // GetName returns StreamEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns StreamEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns StreamEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *StreamEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -99928,11 +100721,16 @@ type StreamEventInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -99947,14 +100745,17 @@ type StreamEventInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamEventInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamEventInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -99993,6 +100794,9 @@ func (v *StreamEventInNodeDefaultFieldsStream) GetPlaybackId() string { return v
 
 // GetRecord returns StreamEventInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamEventInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamEventInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamEventInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamEventInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamEventInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -100284,6 +101088,8 @@ type StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -100314,6 +101120,11 @@ func (v *StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatform(
 
 // GetName returns StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *StreamEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -100476,8 +101287,6 @@ type StreamFields struct {
 	Name string `json:"name"`
 	// Optional description for the stream.
 	Description *string `json:"description"`
-	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
-	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
@@ -100490,8 +101299,9 @@ type StreamFields struct {
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -100500,10 +101310,6 @@ type StreamFields struct {
 	Monitoring MonitoringToggle `json:"monitoring"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
-	// Real-time operational metrics from the data plane.
-	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
-	Metrics *StreamFieldsMetricsStreamMetrics `json:"metrics"`
 }
 
 // GetTypename returns StreamFields.Typename, and is useful for accessing the field via an interface.
@@ -100520,9 +101326,6 @@ func (v *StreamFields) GetName() string { return v.Name }
 
 // GetDescription returns StreamFields.Description, and is useful for accessing the field via an interface.
 func (v *StreamFields) GetDescription() *string { return v.Description }
-
-// GetStreamKey returns StreamFields.StreamKey, and is useful for accessing the field via an interface.
-func (v *StreamFields) GetStreamKey() *string { return v.StreamKey }
 
 // GetPlaybackId returns StreamFields.PlaybackId, and is useful for accessing the field via an interface.
 func (v *StreamFields) GetPlaybackId() string { return v.PlaybackId }
@@ -100553,42 +101356,6 @@ func (v *StreamFields) GetMonitoring() MonitoringToggle { return v.Monitoring }
 
 // GetPlaybackPolicy returns StreamFields.PlaybackPolicy, and is useful for accessing the field via an interface.
 func (v *StreamFields) GetPlaybackPolicy() *StreamFieldsPlaybackPolicy { return v.PlaybackPolicy }
-
-// GetMetrics returns StreamFields.Metrics, and is useful for accessing the field via an interface.
-func (v *StreamFields) GetMetrics() *StreamFieldsMetricsStreamMetrics { return v.Metrics }
-
-// StreamFieldsMetricsStreamMetrics includes the requested fields of the GraphQL type StreamMetrics.
-// The GraphQL type's documentation follows.
-//
-// Real-time operational metrics for a stream from the analytics data plane.
-// Updated frequently while stream is live, represents latest known state.
-type StreamFieldsMetricsStreamMetrics struct {
-	// Current lifecycle status of the stream (OFFLINE, CONNECTING, LIVE, etc.).
-	Status StreamStatus `json:"status"`
-	// Whether the stream is currently broadcasting.
-	IsLive bool `json:"isLive"`
-	// Number of viewers currently watching.
-	CurrentViewers int `json:"currentViewers"`
-	// When the current live session started (null if offline).
-	StartedAt *time.Time `json:"startedAt"`
-	// When these metrics were last updated.
-	UpdatedAt time.Time `json:"updatedAt"`
-}
-
-// GetStatus returns StreamFieldsMetricsStreamMetrics.Status, and is useful for accessing the field via an interface.
-func (v *StreamFieldsMetricsStreamMetrics) GetStatus() StreamStatus { return v.Status }
-
-// GetIsLive returns StreamFieldsMetricsStreamMetrics.IsLive, and is useful for accessing the field via an interface.
-func (v *StreamFieldsMetricsStreamMetrics) GetIsLive() bool { return v.IsLive }
-
-// GetCurrentViewers returns StreamFieldsMetricsStreamMetrics.CurrentViewers, and is useful for accessing the field via an interface.
-func (v *StreamFieldsMetricsStreamMetrics) GetCurrentViewers() int { return v.CurrentViewers }
-
-// GetStartedAt returns StreamFieldsMetricsStreamMetrics.StartedAt, and is useful for accessing the field via an interface.
-func (v *StreamFieldsMetricsStreamMetrics) GetStartedAt() *time.Time { return v.StartedAt }
-
-// GetUpdatedAt returns StreamFieldsMetricsStreamMetrics.UpdatedAt, and is useful for accessing the field via an interface.
-func (v *StreamFieldsMetricsStreamMetrics) GetUpdatedAt() time.Time { return v.UpdatedAt }
 
 // StreamFieldsPlaybackPolicy includes the requested fields of the GraphQL type PlaybackPolicy.
 // The GraphQL type's documentation follows.
@@ -100950,11 +101717,16 @@ type StreamHealthMetricDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -100969,14 +101741,17 @@ type StreamHealthMetricDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamHealthMetricDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamHealthMetricDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -101015,6 +101790,9 @@ func (v *StreamHealthMetricDefaultFieldsStream) GetPlaybackId() string { return 
 
 // GetRecord returns StreamHealthMetricDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamHealthMetricDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamHealthMetricDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamHealthMetricDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -101312,6 +102090,8 @@ type StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -101342,6 +102122,11 @@ func (v *StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget) GetPlatform
 
 // GetName returns StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -101604,11 +102389,16 @@ type StreamHealthMetricInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -101623,14 +102413,17 @@ type StreamHealthMetricInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamHealthMetricInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamHealthMetricInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -101669,6 +102462,9 @@ func (v *StreamHealthMetricInNodeDefaultFieldsStream) GetPlaybackId() string { r
 
 // GetRecord returns StreamHealthMetricInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamHealthMetricInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamHealthMetricInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamHealthMetricInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -101986,6 +102782,8 @@ type StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -102019,6 +102817,11 @@ func (v *StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPl
 // GetName returns StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns StreamHealthMetricInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -102191,11 +102994,16 @@ type StreamInNodeDefaultFields struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -102210,14 +103018,17 @@ type StreamInNodeDefaultFields struct {
 	StreamUpdatedAt time.Time `json:"streamUpdatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *StreamInNodeDefaultFieldsMetricsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []StreamInNodeDefaultFieldsPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *StreamInNodeDefaultFieldsPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -102256,6 +103067,9 @@ func (v *StreamInNodeDefaultFields) GetPlaybackId() string { return v.PlaybackId
 
 // GetRecord returns StreamInNodeDefaultFields.Record, and is useful for accessing the field via an interface.
 func (v *StreamInNodeDefaultFields) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns StreamInNodeDefaultFields.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *StreamInNodeDefaultFields) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns StreamInNodeDefaultFields.IngestMode, and is useful for accessing the field via an interface.
 func (v *StreamInNodeDefaultFields) GetIngestMode() IngestMode { return v.IngestMode }
@@ -102622,6 +103436,8 @@ type StreamInNodeDefaultFieldsPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -102648,6 +103464,11 @@ func (v *StreamInNodeDefaultFieldsPushTargetsPushTarget) GetPlatform() *string {
 
 // GetName returns StreamInNodeDefaultFieldsPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *StreamInNodeDefaultFieldsPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns StreamInNodeDefaultFieldsPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *StreamInNodeDefaultFieldsPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns StreamInNodeDefaultFieldsPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *StreamInNodeDefaultFieldsPushTargetsPushTarget) GetTargetUri() string { return v.TargetUri }
@@ -102765,9 +103586,10 @@ func (v *StreamInNodeDefaultFieldsThumbnailAssets) GetAssetKey() string { return
 
 // StreamKeyFields includes the GraphQL fields of StreamKey requested by the fragment StreamKeyFields.
 type StreamKeyFields struct {
-	Typename   *string    `json:"__typename"`
-	Id         string     `json:"id"`
-	StreamId   string     `json:"streamId"`
+	Typename *string `json:"__typename"`
+	Id       string  `json:"id"`
+	StreamId string  `json:"streamId"`
+	// The publishing secret. Stream keys are read only through operations that need the streams:write scope.
 	KeyValue   string     `json:"keyValue"`
 	KeyName    *string    `json:"keyName"`
 	IsActive   bool       `json:"isActive"`
@@ -102798,6 +103620,59 @@ func (v *StreamKeyFields) GetLastUsedAt() *time.Time { return v.LastUsedAt }
 
 // GetCreatedAt returns StreamKeyFields.CreatedAt, and is useful for accessing the field via an interface.
 func (v *StreamKeyFields) GetCreatedAt() time.Time { return v.CreatedAt }
+
+// StreamMetricsFields includes the GraphQL fields of StreamMetrics requested by the fragment StreamMetricsFields.
+// The GraphQL type's documentation follows.
+//
+// Real-time operational metrics for a stream from the analytics data plane.
+// Updated frequently while stream is live, represents latest known state.
+type StreamMetricsFields struct {
+	// Current lifecycle status of the stream (OFFLINE, CONNECTING, LIVE, etc.).
+	Status StreamStatus `json:"status"`
+	// Whether the stream is currently broadcasting.
+	IsLive bool `json:"isLive"`
+	// Number of viewers currently watching.
+	CurrentViewers int `json:"currentViewers"`
+	// When the current live session started (null if offline).
+	StartedAt *time.Time `json:"startedAt"`
+	// When these metrics were last updated.
+	UpdatedAt time.Time `json:"updatedAt"`
+	// Buffer health state (HEALTHY, WARNING, CRITICAL).
+	BufferState *string `json:"bufferState"`
+	// Highest quality tier available (4K, 1080p, 720p, etc.).
+	QualityTier *string `json:"qualityTier"`
+	// Whether the stream has active quality issues.
+	HasIssues *bool `json:"hasIssues"`
+	// Human-readable description of current issues.
+	IssuesDescription *string `json:"issuesDescription"`
+}
+
+// GetStatus returns StreamMetricsFields.Status, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetStatus() StreamStatus { return v.Status }
+
+// GetIsLive returns StreamMetricsFields.IsLive, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetIsLive() bool { return v.IsLive }
+
+// GetCurrentViewers returns StreamMetricsFields.CurrentViewers, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetCurrentViewers() int { return v.CurrentViewers }
+
+// GetStartedAt returns StreamMetricsFields.StartedAt, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetStartedAt() *time.Time { return v.StartedAt }
+
+// GetUpdatedAt returns StreamMetricsFields.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetUpdatedAt() time.Time { return v.UpdatedAt }
+
+// GetBufferState returns StreamMetricsFields.BufferState, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetBufferState() *string { return v.BufferState }
+
+// GetQualityTier returns StreamMetricsFields.QualityTier, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetQualityTier() *string { return v.QualityTier }
+
+// GetHasIssues returns StreamMetricsFields.HasIssues, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetHasIssues() *bool { return v.HasIssues }
+
+// GetIssuesDescription returns StreamMetricsFields.IssuesDescription, and is useful for accessing the field via an interface.
+func (v *StreamMetricsFields) GetIssuesDescription() *string { return v.IssuesDescription }
 
 // StreamRetentionOverridesDefaultFields includes the GraphQL fields of StreamRetentionOverrides requested by the fragment StreamRetentionOverridesDefaultFields.
 // The GraphQL type's documentation follows.
@@ -102881,6 +103756,162 @@ func (v *StreamValidationDefaultFields) GetStreamKey() string { return v.StreamK
 
 // GetError returns StreamValidationDefaultFields.Error, and is useful for accessing the field via an interface.
 func (v *StreamValidationDefaultFields) GetError() *string { return v.Error }
+
+// A stream with its publishing key: what creating or rotating a key returns.
+// Reading the key needs streams:write on an API token.
+type StreamWithKeyFields struct {
+	StreamFields `json:"-"`
+	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
+	StreamKey *string `json:"streamKey"`
+}
+
+// GetStreamKey returns StreamWithKeyFields.StreamKey, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetStreamKey() *string { return v.StreamKey }
+
+// GetTypename returns StreamWithKeyFields.Typename, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetTypename() *string { return v.StreamFields.Typename }
+
+// GetId returns StreamWithKeyFields.Id, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetId() string { return v.StreamFields.Id }
+
+// GetStreamId returns StreamWithKeyFields.StreamId, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetStreamId() string { return v.StreamFields.StreamId }
+
+// GetName returns StreamWithKeyFields.Name, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetName() string { return v.StreamFields.Name }
+
+// GetDescription returns StreamWithKeyFields.Description, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetDescription() *string { return v.StreamFields.Description }
+
+// GetPlaybackId returns StreamWithKeyFields.PlaybackId, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetPlaybackId() string { return v.StreamFields.PlaybackId }
+
+// GetRecord returns StreamWithKeyFields.Record, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetRecord() bool { return v.StreamFields.Record }
+
+// GetIngestMode returns StreamWithKeyFields.IngestMode, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetIngestMode() IngestMode { return v.StreamFields.IngestMode }
+
+// GetPullSource returns StreamWithKeyFields.PullSource, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetPullSource() *StreamFieldsPullSourcePullSourceView {
+	return v.StreamFields.PullSource
+}
+
+// GetCreatedAt returns StreamWithKeyFields.CreatedAt, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetCreatedAt() time.Time { return v.StreamFields.CreatedAt }
+
+// GetUpdatedAt returns StreamWithKeyFields.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetUpdatedAt() time.Time { return v.StreamFields.UpdatedAt }
+
+// GetDvrChapterMode returns StreamWithKeyFields.DvrChapterMode, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetDvrChapterMode() *DVRChapterMode {
+	return v.StreamFields.DvrChapterMode
+}
+
+// GetDvrChapterIntervalSeconds returns StreamWithKeyFields.DvrChapterIntervalSeconds, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetDvrChapterIntervalSeconds() *int {
+	return v.StreamFields.DvrChapterIntervalSeconds
+}
+
+// GetMonitoring returns StreamWithKeyFields.Monitoring, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetMonitoring() MonitoringToggle { return v.StreamFields.Monitoring }
+
+// GetPlaybackPolicy returns StreamWithKeyFields.PlaybackPolicy, and is useful for accessing the field via an interface.
+func (v *StreamWithKeyFields) GetPlaybackPolicy() *StreamFieldsPlaybackPolicy {
+	return v.StreamFields.PlaybackPolicy
+}
+
+func (v *StreamWithKeyFields) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*StreamWithKeyFields
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.StreamWithKeyFields = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.StreamFields)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalStreamWithKeyFields struct {
+	StreamKey *string `json:"streamKey"`
+
+	Typename *string `json:"__typename"`
+
+	Id string `json:"id"`
+
+	StreamId string `json:"streamId"`
+
+	Name string `json:"name"`
+
+	Description *string `json:"description"`
+
+	PlaybackId string `json:"playbackId"`
+
+	Record bool `json:"record"`
+
+	IngestMode IngestMode `json:"ingestMode"`
+
+	PullSource *StreamFieldsPullSourcePullSourceView `json:"pullSource"`
+
+	CreatedAt time.Time `json:"createdAt"`
+
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
+
+	DvrChapterIntervalSeconds *int `json:"dvrChapterIntervalSeconds"`
+
+	Monitoring MonitoringToggle `json:"monitoring"`
+
+	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
+}
+
+func (v *StreamWithKeyFields) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *StreamWithKeyFields) __premarshalJSON() (*__premarshalStreamWithKeyFields, error) {
+	var retval __premarshalStreamWithKeyFields
+
+	retval.StreamKey = v.StreamKey
+	retval.Typename = v.StreamFields.Typename
+	retval.Id = v.StreamFields.Id
+	retval.StreamId = v.StreamFields.StreamId
+	retval.Name = v.StreamFields.Name
+	retval.Description = v.StreamFields.Description
+	retval.PlaybackId = v.StreamFields.PlaybackId
+	retval.Record = v.StreamFields.Record
+	retval.IngestMode = v.StreamFields.IngestMode
+	retval.PullSource = v.StreamFields.PullSource
+	retval.CreatedAt = v.StreamFields.CreatedAt
+	retval.UpdatedAt = v.StreamFields.UpdatedAt
+	retval.DvrChapterMode = v.StreamFields.DvrChapterMode
+	retval.DvrChapterIntervalSeconds = v.StreamFields.DvrChapterIntervalSeconds
+	retval.Monitoring = v.StreamFields.Monitoring
+	retval.PlaybackPolicy = v.StreamFields.PlaybackPolicy
+	return &retval, nil
+}
 
 // StreamingConfigDefaultFields includes the GraphQL fields of StreamingConfig requested by the fragment StreamingConfigDefaultFields.
 type StreamingConfigDefaultFields struct {
@@ -104020,19 +105051,25 @@ type TenantEventDefaultFieldsConnectionEventStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -104063,6 +105100,11 @@ func (v *TenantEventDefaultFieldsConnectionEventStream) GetPlaybackId() string {
 
 // GetRecord returns TenantEventDefaultFieldsConnectionEventStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsConnectionEventStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsConnectionEventStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsConnectionEventStream) GetLiveVideoAbr() string {
+	return v.LiveVideoAbr
+}
 
 // GetIngestMode returns TenantEventDefaultFieldsConnectionEventStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsConnectionEventStream) GetIngestMode() IngestMode {
@@ -104475,19 +105517,25 @@ type TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -104529,6 +105577,11 @@ func (v *TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream) Get
 // GetRecord returns TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream) GetRecord() bool {
 	return v.Record
+}
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream) GetLiveVideoAbr() string {
+	return v.LiveVideoAbr
 }
 
 // GetIngestMode returns TenantEventDefaultFieldsProcessingEventProcessingUsageRecordStream.IngestMode, and is useful for accessing the field via an interface.
@@ -104732,19 +105785,25 @@ type TenantEventDefaultFieldsRoutingEventStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -104773,6 +105832,9 @@ func (v *TenantEventDefaultFieldsRoutingEventStream) GetPlaybackId() string { re
 
 // GetRecord returns TenantEventDefaultFieldsRoutingEventStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsRoutingEventStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsRoutingEventStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsRoutingEventStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TenantEventDefaultFieldsRoutingEventStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsRoutingEventStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -104903,19 +105965,25 @@ type TenantEventDefaultFieldsStorageEventStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -104944,6 +106012,9 @@ func (v *TenantEventDefaultFieldsStorageEventStream) GetPlaybackId() string { re
 
 // GetRecord returns TenantEventDefaultFieldsStorageEventStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsStorageEventStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsStorageEventStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsStorageEventStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TenantEventDefaultFieldsStorageEventStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsStorageEventStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -105234,19 +106305,25 @@ type TenantEventDefaultFieldsStreamEventStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -105275,6 +106352,9 @@ func (v *TenantEventDefaultFieldsStreamEventStream) GetPlaybackId() string { ret
 
 // GetRecord returns TenantEventDefaultFieldsStreamEventStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsStreamEventStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsStreamEventStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsStreamEventStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TenantEventDefaultFieldsStreamEventStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsStreamEventStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -105461,19 +106541,25 @@ type TenantEventDefaultFieldsTrackListUpdateStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -105504,6 +106590,11 @@ func (v *TenantEventDefaultFieldsTrackListUpdateStream) GetPlaybackId() string {
 
 // GetRecord returns TenantEventDefaultFieldsTrackListUpdateStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsTrackListUpdateStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsTrackListUpdateStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsTrackListUpdateStream) GetLiveVideoAbr() string {
+	return v.LiveVideoAbr
+}
 
 // GetIngestMode returns TenantEventDefaultFieldsTrackListUpdateStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsTrackListUpdateStream) GetIngestMode() IngestMode {
@@ -105718,19 +106809,25 @@ type TenantEventDefaultFieldsViewerMetricsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// When this stream was created.
 	CreatedAt time.Time `json:"createdAt"`
 	// When this stream was last modified.
 	UpdatedAt time.Time `json:"updatedAt"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -105759,6 +106856,9 @@ func (v *TenantEventDefaultFieldsViewerMetricsStream) GetPlaybackId() string { r
 
 // GetRecord returns TenantEventDefaultFieldsViewerMetricsStream.Record, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsViewerMetricsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TenantEventDefaultFieldsViewerMetricsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TenantEventDefaultFieldsViewerMetricsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TenantEventDefaultFieldsViewerMetricsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TenantEventDefaultFieldsViewerMetricsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -109398,11 +110498,16 @@ type TrackListEventDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -109417,14 +110522,17 @@ type TrackListEventDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *TrackListEventDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []TrackListEventDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *TrackListEventDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -109463,6 +110571,9 @@ func (v *TrackListEventDefaultFieldsStream) GetPlaybackId() string { return v.Pl
 
 // GetRecord returns TrackListEventDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *TrackListEventDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TrackListEventDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TrackListEventDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TrackListEventDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TrackListEventDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -109740,6 +110851,8 @@ type TrackListEventDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -109770,6 +110883,11 @@ func (v *TrackListEventDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *
 
 // GetName returns TrackListEventDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *TrackListEventDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns TrackListEventDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *TrackListEventDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns TrackListEventDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *TrackListEventDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -109994,11 +111112,16 @@ type TrackListEventInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -110013,14 +111136,17 @@ type TrackListEventInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *TrackListEventInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *TrackListEventInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -110059,6 +111185,9 @@ func (v *TrackListEventInNodeDefaultFieldsStream) GetPlaybackId() string { retur
 
 // GetRecord returns TrackListEventInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *TrackListEventInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TrackListEventInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TrackListEventInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TrackListEventInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TrackListEventInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -110368,6 +111497,8 @@ type TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -110399,6 +111530,11 @@ func (v *TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatfo
 // GetName returns TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns TrackListEventInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -110678,11 +111814,16 @@ type TrackListUpdateDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -110697,14 +111838,17 @@ type TrackListUpdateDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *TrackListUpdateDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *TrackListUpdateDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -110743,6 +111887,9 @@ func (v *TrackListUpdateDefaultFieldsStream) GetPlaybackId() string { return v.P
 
 // GetRecord returns TrackListUpdateDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *TrackListUpdateDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns TrackListUpdateDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *TrackListUpdateDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns TrackListUpdateDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *TrackListUpdateDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -111028,6 +112175,8 @@ type TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -111058,6 +112207,11 @@ func (v *TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() 
 
 // GetName returns TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *TrackListUpdateDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -113078,6 +114232,8 @@ func (v *UpdateMediaRetentionUpdateMediaRetentionValidationError) __premarshalJS
 type UpdatePushTargetInput struct {
 	// Updated label.
 	Name *string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO for RTMP targets.
+	VideoChoice *string `json:"videoChoice"`
 	// Updated target URI.
 	TargetUri *string `json:"targetUri"`
 	// Enable or disable this target.
@@ -113086,6 +114242,9 @@ type UpdatePushTargetInput struct {
 
 // GetName returns UpdatePushTargetInput.Name, and is useful for accessing the field via an interface.
 func (v *UpdatePushTargetInput) GetName() *string { return v.Name }
+
+// GetVideoChoice returns UpdatePushTargetInput.VideoChoice, and is useful for accessing the field via an interface.
+func (v *UpdatePushTargetInput) GetVideoChoice() *string { return v.VideoChoice }
 
 // GetTargetUri returns UpdatePushTargetInput.TargetUri, and is useful for accessing the field via an interface.
 func (v *UpdatePushTargetInput) GetTargetUri() *string { return v.TargetUri }
@@ -113322,19 +114481,22 @@ type UpdateStreamInput struct {
 	Description *string `json:"description"`
 	// Enable or disable DVR recording.
 	Record *bool `json:"record"`
+	// INHERIT uses the tier policy; OFF disables live video renditions from the next ingest.
+	LiveVideoAbr *string `json:"liveVideoAbr"`
 	// Ingest model cannot be changed after create; sending a different value returns a validation error.
 	IngestMode *IngestMode `json:"ingestMode"`
 	// Update the pull-source configuration for an existing pull stream.
 	PullSource *PullSourceInput `json:"pullSource"`
 	// Replace where the source may be ingested. Omitted keeps the current location. Rejected for managed streams.
 	SourceLocation *SourceLocationInput `json:"sourceLocation"`
-	// Historical chapter rotation mode. Snapshotted onto the DVR artifact
-	// at StartDVR; changes take effect on the next recording, not in-flight.
-	// NONE means rolling DVR playback only: recording still runs, but no
-	// finalized chapter artifacts are produced for historical replay.
+	// How saved recordings are split into chapters. Snapshotted when a
+	// recording starts; changes apply from the next broadcast, not to a
+	// recording in progress. NONE keeps live rewind only: viewers can rewind
+	// while live, but nothing is kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode =
-	// FIXED_INTERVAL. Minimum 3600 (1 hour).
+	// FIXED_INTERVAL. Minimum 3600 (1 hour). Send 0 with any other mode to
+	// clear a stored interval.
 	DvrChapterIntervalSeconds *int `json:"dvrChapterIntervalSeconds"`
 	// Per-stream Skipper monitoring override. INHERIT follows the tenant tier.
 	Monitoring *MonitoringToggle `json:"monitoring"`
@@ -113348,6 +114510,9 @@ func (v *UpdateStreamInput) GetDescription() *string { return v.Description }
 
 // GetRecord returns UpdateStreamInput.Record, and is useful for accessing the field via an interface.
 func (v *UpdateStreamInput) GetRecord() *bool { return v.Record }
+
+// GetLiveVideoAbr returns UpdateStreamInput.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *UpdateStreamInput) GetLiveVideoAbr() *string { return v.LiveVideoAbr }
 
 // GetIngestMode returns UpdateStreamInput.IngestMode, and is useful for accessing the field via an interface.
 func (v *UpdateStreamInput) GetIngestMode() *IngestMode { return v.IngestMode }
@@ -113466,9 +114631,6 @@ func (v *UpdateStreamUpdateStream) GetName() string { return v.StreamFields.Name
 // GetDescription returns UpdateStreamUpdateStream.Description, and is useful for accessing the field via an interface.
 func (v *UpdateStreamUpdateStream) GetDescription() *string { return v.StreamFields.Description }
 
-// GetStreamKey returns UpdateStreamUpdateStream.StreamKey, and is useful for accessing the field via an interface.
-func (v *UpdateStreamUpdateStream) GetStreamKey() *string { return v.StreamFields.StreamKey }
-
 // GetPlaybackId returns UpdateStreamUpdateStream.PlaybackId, and is useful for accessing the field via an interface.
 func (v *UpdateStreamUpdateStream) GetPlaybackId() string { return v.StreamFields.PlaybackId }
 
@@ -113507,11 +114669,6 @@ func (v *UpdateStreamUpdateStream) GetPlaybackPolicy() *StreamFieldsPlaybackPoli
 	return v.StreamFields.PlaybackPolicy
 }
 
-// GetMetrics returns UpdateStreamUpdateStream.Metrics, and is useful for accessing the field via an interface.
-func (v *UpdateStreamUpdateStream) GetMetrics() *StreamFieldsMetricsStreamMetrics {
-	return v.StreamFields.Metrics
-}
-
 func (v *UpdateStreamUpdateStream) UnmarshalJSON(b []byte) error {
 
 	if string(b) == "null" {
@@ -113548,8 +114705,6 @@ type __premarshalUpdateStreamUpdateStream struct {
 
 	Description *string `json:"description"`
 
-	StreamKey *string `json:"streamKey"`
-
 	PlaybackId string `json:"playbackId"`
 
 	Record bool `json:"record"`
@@ -113569,8 +114724,6 @@ type __premarshalUpdateStreamUpdateStream struct {
 	Monitoring MonitoringToggle `json:"monitoring"`
 
 	PlaybackPolicy *StreamFieldsPlaybackPolicy `json:"playbackPolicy"`
-
-	Metrics *StreamFieldsMetricsStreamMetrics `json:"metrics"`
 }
 
 func (v *UpdateStreamUpdateStream) MarshalJSON() ([]byte, error) {
@@ -113589,7 +114742,6 @@ func (v *UpdateStreamUpdateStream) __premarshalJSON() (*__premarshalUpdateStream
 	retval.StreamId = v.StreamFields.StreamId
 	retval.Name = v.StreamFields.Name
 	retval.Description = v.StreamFields.Description
-	retval.StreamKey = v.StreamFields.StreamKey
 	retval.PlaybackId = v.StreamFields.PlaybackId
 	retval.Record = v.StreamFields.Record
 	retval.IngestMode = v.StreamFields.IngestMode
@@ -113600,7 +114752,6 @@ func (v *UpdateStreamUpdateStream) __premarshalJSON() (*__premarshalUpdateStream
 	retval.DvrChapterIntervalSeconds = v.StreamFields.DvrChapterIntervalSeconds
 	retval.Monitoring = v.StreamFields.Monitoring
 	retval.PlaybackPolicy = v.StreamFields.PlaybackPolicy
-	retval.Metrics = v.StreamFields.Metrics
 	return &retval, nil
 }
 
@@ -115144,11 +116295,16 @@ type ViewerCountBucketDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -115163,14 +116319,17 @@ type ViewerCountBucketDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerCountBucketDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerCountBucketDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -115209,6 +116368,9 @@ func (v *ViewerCountBucketDefaultFieldsStream) GetPlaybackId() string { return v
 
 // GetRecord returns ViewerCountBucketDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerCountBucketDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerCountBucketDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerCountBucketDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerCountBucketDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerCountBucketDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -115500,6 +116662,8 @@ type ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -115530,6 +116694,11 @@ func (v *ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget) GetPlatform(
 
 // GetName returns ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ViewerCountBucketDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -115816,11 +116985,16 @@ type ViewerGeographicDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -115835,14 +117009,17 @@ type ViewerGeographicDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerGeographicDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerGeographicDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -115881,6 +117058,9 @@ func (v *ViewerGeographicDefaultFieldsStream) GetPlaybackId() string { return v.
 
 // GetRecord returns ViewerGeographicDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerGeographicDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerGeographicDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerGeographicDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerGeographicDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerGeographicDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -116168,6 +117348,8 @@ type ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -116198,6 +117380,11 @@ func (v *ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget) GetPlatform()
 
 // GetName returns ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ViewerGeographicDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -116372,11 +117559,16 @@ type ViewerHoursHourlyDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -116391,14 +117583,17 @@ type ViewerHoursHourlyDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerHoursHourlyDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerHoursHourlyDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -116437,6 +117632,9 @@ func (v *ViewerHoursHourlyDefaultFieldsStream) GetPlaybackId() string { return v
 
 // GetRecord returns ViewerHoursHourlyDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerHoursHourlyDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerHoursHourlyDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerHoursHourlyDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -116728,6 +117926,8 @@ type ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -116758,6 +117958,11 @@ func (v *ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget) GetPlatform(
 
 // GetName returns ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -116936,11 +118141,16 @@ type ViewerHoursHourlyInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -116955,14 +118165,17 @@ type ViewerHoursHourlyInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerHoursHourlyInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerHoursHourlyInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -117001,6 +118214,9 @@ func (v *ViewerHoursHourlyInNodeDefaultFieldsStream) GetPlaybackId() string { re
 
 // GetRecord returns ViewerHoursHourlyInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerHoursHourlyInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerHoursHourlyInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerHoursHourlyInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -117314,6 +118530,8 @@ type ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -117345,6 +118563,11 @@ func (v *ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPla
 // GetName returns ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string {
 	return v.Name
+}
+
+// GetVideoChoice returns ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
 }
 
 // GetTargetUri returns ViewerHoursHourlyInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
@@ -117564,11 +118787,16 @@ type ViewerMetricsDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -117583,14 +118811,17 @@ type ViewerMetricsDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerMetricsDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerMetricsDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -117629,6 +118860,9 @@ func (v *ViewerMetricsDefaultFieldsStream) GetPlaybackId() string { return v.Pla
 
 // GetRecord returns ViewerMetricsDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerMetricsDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerMetricsDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerMetricsDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerMetricsDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerMetricsDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -117906,6 +119140,8 @@ type ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -117936,6 +119172,11 @@ func (v *ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *s
 
 // GetName returns ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ViewerMetricsDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -118150,11 +119391,16 @@ type ViewerSessionDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -118169,14 +119415,17 @@ type ViewerSessionDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerSessionDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerSessionDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerSessionDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -118215,6 +119464,9 @@ func (v *ViewerSessionDefaultFieldsStream) GetPlaybackId() string { return v.Pla
 
 // GetRecord returns ViewerSessionDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerSessionDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerSessionDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerSessionDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerSessionDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerSessionDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -118492,6 +119744,8 @@ type ViewerSessionDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -118522,6 +119776,11 @@ func (v *ViewerSessionDefaultFieldsStreamPushTargetsPushTarget) GetPlatform() *s
 
 // GetName returns ViewerSessionDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerSessionDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ViewerSessionDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerSessionDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ViewerSessionDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ViewerSessionDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -118746,11 +120005,16 @@ type ViewerSessionInNodeDefaultFieldsStream struct {
 	// Optional description for the stream.
 	Description *string `json:"description"`
 	// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+	// The key lets its holder publish to the stream, so an API token needs the
+	// streams:write scope: without it this field is null and the response carries
+	// a FORBIDDEN error at its path.
 	StreamKey *string `json:"streamKey"`
 	// Public identifier for playback URLs.
 	PlaybackId string `json:"playbackId"`
 	// Whether DVR recording is enabled for this stream.
 	Record bool `json:"record"`
+	// INHERIT or OFF for live video renditions.
+	LiveVideoAbr string `json:"liveVideoAbr"`
 	// How source media enters the stream.
 	IngestMode IngestMode `json:"ingestMode"`
 	// Pull-source config for pull streams; null for push streams.
@@ -118765,14 +120029,17 @@ type ViewerSessionInNodeDefaultFieldsStream struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	// Real-time operational metrics from the data plane.
 	// Includes viewer counts, quality metrics, and throughput data.
-	// Lazily loaded from ClickHouse analytics.
+	// Lazily loaded from ClickHouse analytics, so an API token needs the
+	// analytics:read scope: without it this field is null and the response
+	// carries a FORBIDDEN error at its path.
 	Metrics *ViewerSessionInNodeDefaultFieldsStreamMetrics `json:"metrics"`
 	// Configured multistream push targets for this stream.
 	PushTargets []ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget `json:"pushTargets"`
 	// Playback access policy. null/PUBLIC = anyone with the playbackId can watch.
 	PlaybackPolicy *ViewerSessionInNodeDefaultFieldsStreamPlaybackPolicy `json:"playbackPolicy"`
-	// DVR chapter rotation mode. Snapshotted onto the DVR artifact at StartDVR;
-	// changes take effect on the next recording. null/NONE = chapters disabled.
+	// How saved recordings are split into chapters. Snapshotted when a recording
+	// starts; changes apply from the next broadcast. NONE = live rewind only,
+	// nothing kept after the broadcast.
 	DvrChapterMode *DVRChapterMode `json:"dvrChapterMode"`
 	// Chapter interval in seconds. Required when dvrChapterMode = FIXED_INTERVAL,
 	// ignored otherwise. Minimum 3600 (1 hour).
@@ -118811,6 +120078,9 @@ func (v *ViewerSessionInNodeDefaultFieldsStream) GetPlaybackId() string { return
 
 // GetRecord returns ViewerSessionInNodeDefaultFieldsStream.Record, and is useful for accessing the field via an interface.
 func (v *ViewerSessionInNodeDefaultFieldsStream) GetRecord() bool { return v.Record }
+
+// GetLiveVideoAbr returns ViewerSessionInNodeDefaultFieldsStream.LiveVideoAbr, and is useful for accessing the field via an interface.
+func (v *ViewerSessionInNodeDefaultFieldsStream) GetLiveVideoAbr() string { return v.LiveVideoAbr }
 
 // GetIngestMode returns ViewerSessionInNodeDefaultFieldsStream.IngestMode, and is useful for accessing the field via an interface.
 func (v *ViewerSessionInNodeDefaultFieldsStream) GetIngestMode() IngestMode { return v.IngestMode }
@@ -119114,6 +120384,8 @@ type ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget struct {
 	Platform *string `json:"platform"`
 	// User-friendly label for this target.
 	Name string `json:"name"`
+	// AUTO, SOURCE_VIDEO, or PROCESSED_VIDEO. Audio is selected independently.
+	VideoChoice string `json:"videoChoice"`
 	// Target URI (masked in responses — stream key portion is redacted).
 	TargetUri string `json:"targetUri"`
 	// Whether this target is enabled for automatic push on stream start.
@@ -119144,6 +120416,11 @@ func (v *ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget) GetPlatfor
 
 // GetName returns ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget.Name, and is useful for accessing the field via an interface.
 func (v *ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget) GetName() string { return v.Name }
+
+// GetVideoChoice returns ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget.VideoChoice, and is useful for accessing the field via an interface.
+func (v *ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget) GetVideoChoice() string {
+	return v.VideoChoice
+}
 
 // GetTargetUri returns ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget.TargetUri, and is useful for accessing the field via an interface.
 func (v *ViewerSessionInNodeDefaultFieldsStreamPushTargetsPushTarget) GetTargetUri() string {
@@ -120595,7 +121872,7 @@ type WebhookDeliveryDefaultFields struct {
 	LastReplayedAt *time.Time `json:"lastReplayedAt"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
-	// Every HTTP attempt, oldest first. Loaded by the webhookDelivery query; empty in connections.
+	// Every HTTP attempt, oldest first, including attempts before the last replay.
 	AttemptHistory []WebhookDeliveryDefaultFieldsAttemptHistoryWebhookDeliveryAttempt `json:"attemptHistory"`
 }
 
@@ -121074,7 +122351,7 @@ type WebhookTestResultDefaultFieldsDeliveryWebhookDelivery struct {
 	LastReplayedAt *time.Time `json:"lastReplayedAt"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
-	// Every HTTP attempt, oldest first. Loaded by the webhookDelivery query; empty in connections.
+	// Every HTTP attempt, oldest first, including attempts before the last replay.
 	AttemptHistory []WebhookTestResultDefaultFieldsDeliveryWebhookDeliveryAttemptHistoryWebhookDeliveryAttempt `json:"attemptHistory"`
 }
 
@@ -122980,6 +124257,22 @@ type __GetStreamInput struct {
 // GetId returns __GetStreamInput.Id, and is useful for accessing the field via an interface.
 func (v *__GetStreamInput) GetId() string { return v.Id }
 
+// __GetStreamKeyInput is used internally by genqlient
+type __GetStreamKeyInput struct {
+	Id string `json:"id"`
+}
+
+// GetId returns __GetStreamKeyInput.Id, and is useful for accessing the field via an interface.
+func (v *__GetStreamKeyInput) GetId() string { return v.Id }
+
+// __GetStreamMetricsInput is used internally by genqlient
+type __GetStreamMetricsInput struct {
+	Id string `json:"id"`
+}
+
+// GetId returns __GetStreamMetricsInput.Id, and is useful for accessing the field via an interface.
+func (v *__GetStreamMetricsInput) GetId() string { return v.Id }
+
 // __GetTenantAnalyticsDailyConnectionInput is used internally by genqlient
 type __GetTenantAnalyticsDailyConnectionInput struct {
 	Page      *ConnectionInput `json:"page"`
@@ -123361,6 +124654,18 @@ func (v *__ListStreamKeysInput) GetStreamId() string { return v.StreamId }
 
 // GetPage returns __ListStreamKeysInput.Page, and is useful for accessing the field via an interface.
 func (v *__ListStreamKeysInput) GetPage() *ConnectionInput { return v.Page }
+
+// __ListStreamMetricsInput is used internally by genqlient
+type __ListStreamMetricsInput struct {
+	Page   *ConnectionInput `json:"page"`
+	Search *string          `json:"search"`
+}
+
+// GetPage returns __ListStreamMetricsInput.Page, and is useful for accessing the field via an interface.
+func (v *__ListStreamMetricsInput) GetPage() *ConnectionInput { return v.Page }
+
+// GetSearch returns __ListStreamMetricsInput.Search, and is useful for accessing the field via an interface.
+func (v *__ListStreamMetricsInput) GetSearch() *string { return v.Search }
 
 // __ListStreamsInput is used internally by genqlient
 type __ListStreamsInput struct {
@@ -125728,10 +127033,26 @@ const CreateStream_Operation = `
 mutation CreateStream ($input: CreateStreamInput!) {
 	createStream(input: $input) {
 		__typename
-		... StreamFields
+		... StreamWithKeyFields
 		... ValidationErrorFields
 		... AuthErrorFields
 	}
+}
+fragment StreamWithKeyFields on Stream {
+	... StreamFields
+	streamKey
+}
+fragment ValidationErrorFields on ValidationError {
+	__typename
+	message
+	code
+	field
+	constraint
+}
+fragment AuthErrorFields on AuthError {
+	__typename
+	message
+	code
 }
 fragment StreamFields on Stream {
 	__typename
@@ -125739,7 +127060,6 @@ fragment StreamFields on Stream {
 	streamId
 	name
 	description
-	streamKey
 	playbackId
 	record
 	ingestMode
@@ -125756,25 +127076,6 @@ fragment StreamFields on Stream {
 	playbackPolicy {
 		... PlaybackPolicyFields
 	}
-	metrics {
-		status
-		isLive
-		currentViewers
-		startedAt
-		updatedAt
-	}
-}
-fragment ValidationErrorFields on ValidationError {
-	__typename
-	message
-	code
-	field
-	constraint
-}
-fragment AuthErrorFields on AuthError {
-	__typename
-	message
-	code
 }
 fragment PlaybackPolicyFields on PlaybackPolicy {
 	type
@@ -125799,6 +127100,7 @@ fragment PlaybackPolicyFields on PlaybackPolicy {
 // CreateStream executes the corresponding GraphQL operation.
 //
 // Create a new stream for live broadcasting.
+// Creating a stream needs streams:write, which also reads the new publishing key.
 func CreateStream(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -126959,6 +128261,7 @@ fragment ArtifactEventDefaultFields on ArtifactEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -127006,6 +128309,7 @@ fragment ArtifactEventDefaultFields on ArtifactEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -127180,6 +128484,7 @@ fragment ArtifactStateDefaultFields on ArtifactState {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -127227,6 +128532,7 @@ fragment ArtifactStateDefaultFields on ArtifactState {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -127885,6 +129191,7 @@ fragment ClientMetrics5mDefaultFields on ClientMetrics5m {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -127932,6 +129239,7 @@ fragment ClientMetrics5mDefaultFields on ClientMetrics5m {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -129011,6 +130319,7 @@ fragment ConnectionEventDefaultFields on ConnectionEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -129058,6 +130367,7 @@ fragment ConnectionEventDefaultFields on ConnectionEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -129290,13 +130600,16 @@ query GetDVRChapter ($dvrId: ID!, $startMs: Float!, $endMs: Float!, $mode: DVRCh
 //
 // Retrieve a single DVR chapter, including its finalized playbackId.
 //
-// Chapters are produced by the finalization queue as canonical .mkv
-// VOD artifacts. Historical chapter mode is configured at the Stream level
-// (Stream.dvrChapterMode) and snapshotted at StartDVR. Modes:
-//   - WINDOW_SIZED: sequential fixed-length chapters of size
-//     tier.MaxWindowSeconds since the recording's start.
+// Chapters are the saved parts of a recording, produced by the
+// finalization queue as canonical .mkv VOD artifacts. The chapter mode is
+// configured at the Stream level (Stream.dvrChapterMode) and snapshotted
+// when the recording starts. Modes:
+//   - WINDOW_SIZED (default): sequential parts as long as the recording's
+//     own live rewind window, from the recording's start.
 //   - FIXED_INTERVAL: UTC-only buckets of intervalSeconds, anchored at
 //     unix epoch 0.
+//
+// A NONE recording keeps live rewind only and has no chapters.
 func GetDVRChapter(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -129618,6 +130931,7 @@ fragment GeographicDistributionDefaultFields on GeographicDistribution {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -129665,6 +130979,7 @@ fragment GeographicDistributionDefaultFields on GeographicDistribution {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131089,6 +132404,7 @@ fragment ArtifactEventInNodeDefaultFields on ArtifactEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131136,6 +132452,7 @@ fragment ArtifactEventInNodeDefaultFields on ArtifactEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131197,6 +132514,7 @@ fragment ClientMetrics5mDefaultFields on ClientMetrics5m {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131244,6 +132562,7 @@ fragment ClientMetrics5mDefaultFields on ClientMetrics5m {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131292,6 +132611,7 @@ fragment ClipInNodeDefaultFields on Clip {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131339,6 +132659,7 @@ fragment ClipInNodeDefaultFields on Clip {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131457,6 +132778,7 @@ fragment ConnectionEventInNodeDefaultFields on ConnectionEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131504,6 +132826,7 @@ fragment ConnectionEventInNodeDefaultFields on ConnectionEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131689,6 +133012,7 @@ fragment ProcessingUsageRecordInNodeDefaultFields on ProcessingUsageRecord {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131736,6 +133060,7 @@ fragment ProcessingUsageRecordInNodeDefaultFields on ProcessingUsageRecord {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131824,6 +133149,7 @@ fragment QualityTierDailyDefaultFields on QualityTierDaily {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131871,6 +133197,7 @@ fragment QualityTierDailyDefaultFields on QualityTierDaily {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -131935,6 +133262,7 @@ fragment StorageEventInNodeDefaultFields on StorageEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -131982,6 +133310,7 @@ fragment StorageEventInNodeDefaultFields on StorageEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132045,6 +133374,7 @@ fragment StreamInNodeDefaultFields on Stream {
 	streamKey
 	playbackId
 	record
+	liveVideoAbr
 	ingestMode
 	pullSource {
 		sourceUriRedacted
@@ -132096,6 +133426,7 @@ fragment StreamInNodeDefaultFields on Stream {
 		streamId
 		platform
 		name
+		videoChoice
 		targetUri
 		isEnabled
 		status
@@ -132145,6 +133476,7 @@ fragment StreamAnalyticsDailyDefaultFields on StreamAnalyticsDaily {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132192,6 +133524,7 @@ fragment StreamAnalyticsDailyDefaultFields on StreamAnalyticsDaily {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132237,6 +133570,7 @@ fragment StreamConnectionHourlyDefaultFields on StreamConnectionHourly {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132284,6 +133618,7 @@ fragment StreamConnectionHourlyDefaultFields on StreamConnectionHourly {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132327,6 +133662,7 @@ fragment StreamEventInNodeDefaultFields on StreamEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132374,6 +133710,7 @@ fragment StreamEventInNodeDefaultFields on StreamEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132463,6 +133800,7 @@ fragment StreamHealthMetricInNodeDefaultFields on StreamHealthMetric {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132510,6 +133848,7 @@ fragment StreamHealthMetricInNodeDefaultFields on StreamHealthMetric {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132584,6 +133923,7 @@ fragment TrackListEventInNodeDefaultFields on TrackListEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132631,6 +133971,7 @@ fragment TrackListEventInNodeDefaultFields on TrackListEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132699,6 +134040,7 @@ fragment ViewerHoursHourlyInNodeDefaultFields on ViewerHoursHourly {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132746,6 +134088,7 @@ fragment ViewerHoursHourlyInNodeDefaultFields on ViewerHoursHourly {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -132792,6 +134135,7 @@ fragment ViewerSessionInNodeDefaultFields on ViewerSession {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -132839,6 +134183,7 @@ fragment ViewerSessionInNodeDefaultFields on ViewerSession {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -134278,6 +135623,7 @@ fragment ProcessingUsageRecordDefaultFields on ProcessingUsageRecord {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -134325,6 +135671,7 @@ fragment ProcessingUsageRecordDefaultFields on ProcessingUsageRecord {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -134476,6 +135823,7 @@ fragment QualityTierDailyDefaultFields on QualityTierDaily {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -134523,6 +135871,7 @@ fragment QualityTierDailyDefaultFields on QualityTierDaily {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -134634,6 +135983,7 @@ fragment RebufferingEventDefaultFields on RebufferingEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -134681,6 +136031,7 @@ fragment RebufferingEventDefaultFields on RebufferingEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -135060,6 +136411,7 @@ fragment RoutingEventDefaultFields on RoutingEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -135107,6 +136459,7 @@ fragment RoutingEventDefaultFields on RoutingEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -135772,6 +137125,7 @@ fragment StorageEventDefaultFields on StorageEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -135819,6 +137173,7 @@ fragment StorageEventDefaultFields on StorageEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -135991,7 +137346,6 @@ fragment StreamFields on Stream {
 	streamId
 	name
 	description
-	streamKey
 	playbackId
 	record
 	ingestMode
@@ -136007,13 +137361,6 @@ fragment StreamFields on Stream {
 	monitoring
 	playbackPolicy {
 		... PlaybackPolicyFields
-	}
-	metrics {
-		status
-		isLive
-		currentViewers
-		startedAt
-		updatedAt
 	}
 }
 fragment PlaybackPolicyFields on PlaybackPolicy {
@@ -136039,6 +137386,8 @@ fragment PlaybackPolicyFields on PlaybackPolicy {
 // GetStream executes the corresponding GraphQL operation.
 //
 // Fetch a single stream by its global ID.
+// An API token needs the streams:read or streams:write scope. Stream.streamKey
+// needs streams:write.
 func GetStream(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -136098,6 +137447,7 @@ fragment StreamAnalyticsDailyDefaultFields on StreamAnalyticsDaily {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -136145,6 +137495,7 @@ fragment StreamAnalyticsDailyDefaultFields on StreamAnalyticsDaily {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -136249,6 +137600,7 @@ fragment StreamAnalyticsSummaryDefaultFields on StreamAnalyticsSummary {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -136296,6 +137648,7 @@ fragment StreamAnalyticsSummaryDefaultFields on StreamAnalyticsSummary {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -136427,6 +137780,7 @@ fragment StreamAnalyticsSummaryDefaultFields on StreamAnalyticsSummary {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -136474,6 +137828,7 @@ fragment StreamAnalyticsSummaryDefaultFields on StreamAnalyticsSummary {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -136602,6 +137957,7 @@ fragment StreamConnectionHourlyDefaultFields on StreamConnectionHourly {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -136649,6 +138005,7 @@ fragment StreamConnectionHourlyDefaultFields on StreamConnectionHourly {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -136751,6 +138108,7 @@ fragment StreamEventDefaultFields on StreamEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -136798,6 +138156,7 @@ fragment StreamEventDefaultFields on StreamEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -137005,6 +138364,7 @@ fragment StreamHealthMetricDefaultFields on StreamHealthMetric {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -137052,6 +138412,7 @@ fragment StreamHealthMetricDefaultFields on StreamHealthMetric {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -137190,6 +138551,105 @@ func GetStreamHealthSummary(
 	}
 
 	data_ = &GetStreamHealthSummaryResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by GetStreamKey.
+const GetStreamKey_Operation = `
+query GetStreamKey ($id: ID!) {
+	stream(id: $id) {
+		id
+		streamKey
+	}
+}
+`
+
+// GetStreamKey executes the corresponding GraphQL operation.
+//
+// Secret key for publisher-authenticated ingest; null for pull and managed sources.
+// The key lets its holder publish to the stream, so an API token needs the
+// streams:write scope: without it this field is null and the response carries
+// a FORBIDDEN error at its path.
+// The publishing key of a push stream (null for pull and managed streams).
+// The key lets its holder publish, so an API token needs streams:write.
+func GetStreamKey(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	id string,
+) (data_ *GetStreamKeyResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetStreamKey",
+		Query:  GetStreamKey_Operation,
+		Variables: &__GetStreamKeyInput{
+			Id: id,
+		},
+	}
+
+	data_ = &GetStreamKeyResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by GetStreamMetrics.
+const GetStreamMetrics_Operation = `
+query GetStreamMetrics ($id: ID!) {
+	stream(id: $id) {
+		id
+		metrics {
+			... StreamMetricsFields
+		}
+	}
+}
+fragment StreamMetricsFields on StreamMetrics {
+	status
+	isLive
+	currentViewers
+	startedAt
+	updatedAt
+	bufferState
+	qualityTier
+	hasIssues
+	issuesDescription
+}
+`
+
+// GetStreamMetrics executes the corresponding GraphQL operation.
+//
+// Real-time operational metrics from the data plane.
+// Includes viewer counts, quality metrics, and throughput data.
+// Lazily loaded from ClickHouse analytics, so an API token needs the
+// analytics:read scope: without it this field is null and the response
+// carries a FORBIDDEN error at its path.
+// Live state comes from analytics: an API token needs analytics:read.
+func GetStreamMetrics(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	id string,
+) (data_ *GetStreamMetricsResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetStreamMetrics",
+		Query:  GetStreamMetrics_Operation,
+		Variables: &__GetStreamMetricsInput{
+			Id: id,
+		},
+	}
+
+	data_ = &GetStreamMetricsResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
@@ -137525,6 +138985,7 @@ fragment TrackListEventDefaultFields on TrackListEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -137572,6 +139033,7 @@ fragment TrackListEventDefaultFields on TrackListEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -137846,6 +139308,7 @@ fragment ViewerGeographicDefaultFields on ViewerGeographic {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -137893,6 +139356,7 @@ fragment ViewerGeographicDefaultFields on ViewerGeographic {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -138004,6 +139468,7 @@ fragment ViewerHoursHourlyDefaultFields on ViewerHoursHourly {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -138051,6 +139516,7 @@ fragment ViewerHoursHourlyDefaultFields on ViewerHoursHourly {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -138156,6 +139622,7 @@ fragment ViewerSessionDefaultFields on ViewerSession {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -138203,6 +139670,7 @@ fragment ViewerSessionDefaultFields on ViewerSession {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -138322,6 +139790,7 @@ fragment ViewerCountBucketDefaultFields on ViewerCountBucket {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -138369,6 +139838,7 @@ fragment ViewerCountBucketDefaultFields on ViewerCountBucket {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -139623,6 +141093,8 @@ fragment PageInfoFields on PageInfo {
 // ListStreamKeys executes the corresponding GraphQL operation.
 //
 // List all stream keys for a specific stream.
+// Stream keys are publishing credentials, so an API token needs the
+// streams:write scope.
 func ListStreamKeys(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -139639,6 +141111,78 @@ func ListStreamKeys(
 	}
 
 	data_ = &ListStreamKeysResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by ListStreamMetrics.
+const ListStreamMetrics_Operation = `
+query ListStreamMetrics ($page: ConnectionInput, $search: String) {
+	streamsConnection(page: $page, search: $search) {
+		nodes {
+			id
+			streamId
+			metrics {
+				... StreamMetricsFields
+			}
+		}
+		pageInfo {
+			... PageInfoFields
+		}
+		totalCount
+	}
+}
+fragment StreamMetricsFields on StreamMetrics {
+	status
+	isLive
+	currentViewers
+	startedAt
+	updatedAt
+	bufferState
+	qualityTier
+	hasIssues
+	issuesDescription
+}
+fragment PageInfoFields on PageInfo {
+	startCursor
+	endCursor
+	hasNextPage
+	hasPreviousPage
+}
+`
+
+// ListStreamMetrics executes the corresponding GraphQL operation.
+//
+// Real-time operational metrics from the data plane.
+// Includes viewer counts, quality metrics, and throughput data.
+// Lazily loaded from ClickHouse analytics, so an API token needs the
+// analytics:read scope: without it this field is null and the response
+// carries a FORBIDDEN error at its path.
+// Live state of a page of streams, for the same page and search as ListStreams.
+// Live state comes from analytics: an API token needs analytics:read.
+func ListStreamMetrics(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	page *ConnectionInput,
+	search *string,
+) (data_ *ListStreamMetricsResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "ListStreamMetrics",
+		Query:  ListStreamMetrics_Operation,
+		Variables: &__ListStreamMetricsInput{
+			Page:   page,
+			Search: search,
+		},
+	}
+
+	data_ = &ListStreamMetricsResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
@@ -139669,7 +141213,6 @@ fragment StreamFields on Stream {
 	streamId
 	name
 	description
-	streamKey
 	playbackId
 	record
 	ingestMode
@@ -139685,13 +141228,6 @@ fragment StreamFields on Stream {
 	monitoring
 	playbackPolicy {
 		... PlaybackPolicyFields
-	}
-	metrics {
-		status
-		isLive
-		currentViewers
-		startedAt
-		updatedAt
 	}
 }
 fragment PageInfoFields on PageInfo {
@@ -139723,6 +141259,8 @@ fragment PlaybackPolicyFields on PlaybackPolicy {
 // ListStreams executes the corresponding GraphQL operation.
 //
 // List all streams for the current tenant with pagination.
+// An API token needs the streams:read or streams:write scope. Stream.streamKey
+// needs streams:write.
 func ListStreams(
 	ctx_ context.Context,
 	client_ graphql.Client,
@@ -139831,6 +141369,7 @@ fragment ConnectionEventDefaultFields on ConnectionEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -139878,6 +141417,7 @@ fragment ConnectionEventDefaultFields on ConnectionEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -140000,6 +141540,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140053,6 +141594,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140092,6 +141634,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140133,6 +141676,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140182,6 +141726,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140234,6 +141779,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140301,6 +141847,7 @@ fragment TenantEventDefaultFields on TenantEvent {
 			streamKey
 			playbackId
 			record
+			liveVideoAbr
 			ingestMode
 			createdAt
 			updatedAt
@@ -140454,6 +142001,7 @@ fragment ProcessingUsageRecordDefaultFields on ProcessingUsageRecord {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -140501,6 +142049,7 @@ fragment ProcessingUsageRecordDefaultFields on ProcessingUsageRecord {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -140609,6 +142158,7 @@ fragment StorageEventDefaultFields on StorageEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -140656,6 +142206,7 @@ fragment StorageEventDefaultFields on StorageEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -140729,6 +142280,7 @@ fragment StreamEventDefaultFields on StreamEvent {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -140776,6 +142328,7 @@ fragment StreamEventDefaultFields on StreamEvent {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -140901,6 +142454,7 @@ fragment TrackListUpdateDefaultFields on TrackListUpdate {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -140948,6 +142502,7 @@ fragment TrackListUpdateDefaultFields on TrackListUpdate {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -141036,6 +142591,7 @@ fragment ViewerMetricsDefaultFields on ViewerMetrics {
 		streamKey
 		playbackId
 		record
+		liveVideoAbr
 		ingestMode
 		pullSource {
 			sourceUriRedacted
@@ -141083,6 +142639,7 @@ fragment ViewerMetricsDefaultFields on ViewerMetrics {
 			streamId
 			platform
 			name
+			videoChoice
 			targetUri
 			isEnabled
 			status
@@ -141316,42 +142873,15 @@ const RefreshStreamKey_Operation = `
 mutation RefreshStreamKey ($id: ID!) {
 	refreshStreamKey(id: $id) {
 		__typename
-		... StreamFields
+		... StreamWithKeyFields
 		... ValidationErrorFields
 		... NotFoundErrorFields
 		... AuthErrorFields
 	}
 }
-fragment StreamFields on Stream {
-	__typename
-	id
-	streamId
-	name
-	description
+fragment StreamWithKeyFields on Stream {
+	... StreamFields
 	streamKey
-	playbackId
-	record
-	ingestMode
-	pullSource {
-		sourceUriRedacted
-		enabled
-		class
-	}
-	createdAt
-	updatedAt
-	dvrChapterMode
-	dvrChapterIntervalSeconds
-	monitoring
-	playbackPolicy {
-		... PlaybackPolicyFields
-	}
-	metrics {
-		status
-		isLive
-		currentViewers
-		startedAt
-		updatedAt
-	}
 }
 fragment ValidationErrorFields on ValidationError {
 	__typename
@@ -141371,6 +142901,29 @@ fragment AuthErrorFields on AuthError {
 	__typename
 	message
 	code
+}
+fragment StreamFields on Stream {
+	__typename
+	id
+	streamId
+	name
+	description
+	playbackId
+	record
+	ingestMode
+	pullSource {
+		sourceUriRedacted
+		enabled
+		class
+	}
+	createdAt
+	updatedAt
+	dvrChapterMode
+	dvrChapterIntervalSeconds
+	monitoring
+	playbackPolicy {
+		... PlaybackPolicyFields
+	}
 }
 fragment PlaybackPolicyFields on PlaybackPolicy {
 	type
@@ -143862,7 +145415,6 @@ fragment StreamFields on Stream {
 	streamId
 	name
 	description
-	streamKey
 	playbackId
 	record
 	ingestMode
@@ -143878,13 +145430,6 @@ fragment StreamFields on Stream {
 	monitoring
 	playbackPolicy {
 		... PlaybackPolicyFields
-	}
-	metrics {
-		status
-		isLive
-		currentViewers
-		startedAt
-		updatedAt
 	}
 }
 fragment ValidationErrorFields on ValidationError {
